@@ -1,0 +1,47 @@
+html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.column-1 {
+  float: left;
+  border-left-style: solid;
+  border-left-color: lightgrey;
+  width: 30%;
+  height: 100%;
+}
+
+.column-2 {
+  float: left;
+  border-left-style: solid;
+  border-left-color: lightgrey;
+  width: 70%;
+  height: 100%;
+}
+
+.column_quarter {
+  float: left;
+  width: 25%;
+  height: 100%;
+  text-align: center;
+}
+
+.row {
+  border-bottom-style: solid;
+  border-bottom-color: lightgrey;
+  height: 50%;
+  width: 100%;
+}
+
+.scrollable {
+  overflow-y: scroll;
+ }
+
+.tick-line {
+  cursor: ew-resize;
+}
