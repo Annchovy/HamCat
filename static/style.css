@@ -45,3 +45,13 @@ html, body {
 .tick-line {
   cursor: ew-resize;
 }
+
+input[type="checkbox"] {
+    border-style: solid;
+    accent-color: white;
+    outline: 1px solid lightgrey;
+}
+
+.view-title {
+    font-size: 1.5em;
+}

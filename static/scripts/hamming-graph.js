@@ -13,15 +13,26 @@ var sectionBB = {x: 0.05 * widthGraph,
                  width: 0.9 * widthGraph,
                  height: 0.7 * heightSection};
 
-const radiusMin = 10, radiusMax = 20, radiusInner = 4;
+var radiusMin, radiusMax;
+var radiusInner = 5;
 
 const colorOuter = "#6495ED", colorInner = "#5e3c99";
 
-let graph = d3.select("#hamming-graph")
-              .append("svg")
-              .attr("width", widthGraphSVG)
-              .attr("height", 10 * heightGraphSVG)
-              .append("g")
+var nodesRemoved = {};
+var nodes, edges;
+
+let graphCanvas = d3.select("#hamming-graph")
+                      .append("svg")
+                      .attr("width", widthGraphSVG)
+                      .attr("height", 10 * heightGraphSVG);
+
+graphCanvas.append("text")
+        .attr("dx", 0.4 * widthGraphSVG)
+        .attr("dy", "2em")
+        .text("Data Items")
+        .attr("class", "view-title");
+
+let graph = graphCanvas.append("g")
               .attr("width", widthGraph)
               .attr("height", heightGraph)
               .attr("transform",
@@ -68,12 +79,20 @@ function buildSections(nodes, edges, depthMax) {
     var lines = [];
 
     for (let i = 1; i <= depthMax + 1; i++) {
+
         var section = graph.append("g")
                         .attr("id", "section" + (i - 1))
                         .attr("width", sectionBB.width)
                         .attr("height", sectionBB.height)
                         .attr("transform",
                               "translate(" + sectionBB.x + "," + ((i - 1) * heightSection + sectionBB.y) + ")");
+
+        section.append("text")
+              .attr("text-anchor", "middle")
+              .attr("alignment-baseline", "middle")
+              .attr("x", -0.1 * widthGraph)
+              .attr("y", sectionBB.height / 2)
+              .text(i-1);
 
         sections.push(section);
         line = {x1: 0, x2: widthGraph, y: i * heightSection};
@@ -100,7 +119,7 @@ function getNodesOneDegreeSeparation(nodes, edges) {
         var source = nodes[i].id;
         for (let j = i + 1; j < nodes.length; j++) {
             var target = nodes[j].id;
-            if (edges[source][target] == 1) {
+            if (edges[source][target].length == 1) {
                 edgesCurrent.push({'source': i, 'target': j});
             }
         }
@@ -166,7 +185,8 @@ function drawCircles(degree, nodesData, edges) {
     nodesData.sort((a, b) => a.id - b.id)
     var nodesOneDegreeSeparation = getNodesOneDegreeSeparation(nodesData, edges);
     d3.forceSimulation(nodesData)
-    .force("charge", d3.forceManyBody().strength(d => -d.r / 2))
+    .force("collide", d3.forceCollide(d => d.r + 0.5))
+    .force("charge", d3.forceManyBody().strength(d => -d.r))
     .force("link", d3.forceLink(nodesOneDegreeSeparation).distance(radiusMax + 5))
     .on("tick", () => {
             nodesData.forEach(node => {
@@ -196,9 +216,16 @@ function drawCircles(degree, nodesData, edges) {
             .on("mouseleave", mouseleave);
 }
 
+function calculateOuterRadius(count, radius) {
+  return count === 2 ? 2 * radius : Math.sqrt(count) * radius;
+}
+
 function drawGraph(nodeId, nodes, edges, depthMax, respondentsRange) {
-    var n = Object.keys(nodes).length;
+    var n = Math.max(...Object.keys(nodes));
     var degrees = {};
+
+    radiusMin = calculateOuterRadius(respondentsRange[0], (radiusInner + 5));
+    radiusMax = calculateOuterRadius(respondentsRange[1], (radiusInner + 5));
 
     const radiusScale = d3.scaleLinear()
        .domain(respondentsRange)
@@ -209,13 +236,17 @@ function drawGraph(nodeId, nodes, edges, depthMax, respondentsRange) {
     }
 
     for (let i = 0; i < nodeId; i++) {
-        var degree = edges[i][nodeId];
-        degrees[degree].push(i);
+        if (i in nodes) {
+            var degree = edges[i][nodeId].length;
+            degrees[degree].push(i);
+        }
     }
 
-    for (let i = n-1; i > nodeId; i--) {
-        var degree = edges[nodeId][i];
-        degrees[degree].push(i);
+    for (let i = n; i > nodeId; i--) {
+        if (i in nodes) {
+            var degree = edges[nodeId][i].length;
+            degrees[degree].push(i);
+        }
     }
 
     var nodeFocus = { x: 0.5 * widthGraph,
@@ -253,21 +284,26 @@ function drawGraph(nodeId, nodes, edges, depthMax, respondentsRange) {
 };
 
 // extract data and draw graph
-d3.json("/extract_graph").then(data => {
-    var nodes = data.nodes;
-    var edges = data.edges;
+function drawDataItemView() {
 
-    const edgeLengths = Object.values(edges).map(edge => Object.values(edge));
+    const edgeArrays = Object.values(edges).map(edge => Object.values(edge)).flat();
+    const edgeLengths = edgeArrays.map(edgeArray => edgeArray.length);
     const depthMax = Math.max(...edgeLengths.flat());
     const nodeMaxId = Object.keys(nodes).reduce((a, b) => {
         return (nodes[a]['count'] > nodes[b]['count']) ? a : b
     });
 
     const counts = Object.keys(nodes).map(nodeId => nodes[nodeId]['count']);
-    const countMin = Math.min(...counts), countMax = Math.max(...counts);
+    const numberRespondentsMin = Math.min(...counts), numberRespondentsMax = Math.max(...counts);
+
     buildSections(nodes, edges, depthMax);
+    drawGraph(parseInt(nodeMaxId), nodes, edges, depthMax, [numberRespondentsMin, numberRespondentsMax]);
 
-    drawGraph(parseInt(nodeMaxId), nodes, edges, depthMax, [countMin, countMax]);
-});
+}
 
+d3.json("/extract_graph").then(data => {
+    nodes = data.nodes;
+    edges = data.edges;
+    drawDataItemView();
+ });
 
