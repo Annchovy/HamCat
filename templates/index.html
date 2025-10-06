@@ -5,10 +5,27 @@
 	<script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-	<div class="column-1 scrollable" id="beeswarm-plots"></div>
-	<div class="column-2 scrollable" id="hamming-graph"></div>
+	<div class="top-row">
+		<div class="top-row-content">
+			CatHamEmbed: Visual Analytics for High-Dimensional Categorical and Ordinal Data
+		</div>
+	</div>
+	<div class="main-content">
+		<div class="column-1">
+			<div class="view-title">Attribute Frequencies</div>
+			<div class="scrollable" id="beeswarm-plots"></div>
+		</div>
+		<div class="column-2">
+			<div class="view-title">Data Item Graph</div>
+			<div class="scrollable" id="hamming-graph"></div>
+		</div>
+		<div class="column-3" id="entropy-map-container"></div>
+	</div>
 	<script type='text/javascript' src='../static/scripts/requests.js'></script>
-	<script type='text/javascript' src='../static/scripts/hamming-graph.js'></script>
+	<script type='text/javascript' src='../static/scripts/entropyMap.js'></script>
+	<script type='text/javascript' src='../static/scripts/hammingGraph.js'></script>
+	<script type='text/javascript' src='../static/scripts/tooltip.js'></script>
+	<script type='text/javascript' src='../static/scripts/hammingGraphLinks.js'></script>
 	<script type='text/javascript' src='../static/scripts/beeswarm.js'></script>
 </body>
 </html>

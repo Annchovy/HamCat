@@ -1,113 +1,185 @@
-{
-  "q1": {
-    "options": [
-      "Ukraine",
-      "Norway",
-      "Netherlands",
-      "Germany",
-      "Italy"
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1,
-    "group": "group1"
-  },
+{"gender": {
+  "options_categories": {
+        "other": 0,
+        "female": 1,
+        "male": 2
+    },
+   "options": ["other","female", "male"],
+  "importance": 1,
+  "group": "general",
+  "text": "What’s your gender?"},
   "q2": {
-    "options": [
-      -2,
-      -1,
-      0,
-      1,
-      2
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1,
-    "group": "group2"
-  },
-  "q3": {
-    "options": [
-      -2,
-      -1,
-      0,
-      1,
-      2
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1,
-    "group": "group1"
-  },
-  "q4": {
-    "options": [
-      -2,
-      -1,
-      0,
-      1,
-      2
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1,
-    "group": "group2"
-  },
-  "q5": {
-    "options": [
-      "f",
-      "m"
-    ],
-    "weights": [
-      1
-    ],
-    "importance": 1
-  },
-  "q6": {
-    "options": [
-      -2,
-      -1,
-      0,
-      1,
-      2
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1,
-    "group": "group1"
-  },
-  "q7": {
-    "options": [
-      -2,
-      -1,
-      0,
-      1,
-      2
-    ],
-    "weights": [
-      1,
-      1,
-      1,
-      1
-    ],
-    "importance": 1
-  }
+    "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3, -2, -1, 0, 1, 2, 3],
+  "importance": 1,
+  "group": "ST",
+  "text": "Doing well in informatics is important to my future success."},
+ "q3": {
+   "options_categories": {
+      "-3": 0,
+      "-2": 1,
+      "-1": 2,
+      "0": 3 ,
+      "1": 4,
+      "2": 5,
+      "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "Being good at informatics will be useful for me in my future."},
+ "q4": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "Overall, informatics is important to me."},
+ "q5": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "I consider myself good at informatics."},
+ "q6": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "I am capable of excelling at informatics."},
+ "q7": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "My gender influences how I feel about myself."},
+ "q8": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "My gender influences how peers and teachers in informatics class interpret my behavior."},
+ "q9": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "My gender affects how easily I can succeed in informatics."},
+ "q10": {
+   "options_categories": {
+        "-3": 0,
+        "-2": 1,
+        "-1": 2,
+        "0": 3 ,
+        "1": 4,
+        "2": 5,
+        "3": 6
+    },
+   "options": [-3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3],
+  "importance": 1,
+  "group": "ST",
+  "text": "My gender influences how I view my abilities in informatics."}
 }

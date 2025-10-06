@@ -1,26 +1,35 @@
-var element = d3.select('#beeswarm-plots').node();
-var boundingRect = element.getBoundingClientRect();
-var widthBeeswarm = boundingRect.width;
-var heightBeeswarm = boundingRect.height;
+let elementBeeswarm = d3.select('#beeswarm-plots').node();
+let boundingRectBeeswarm = elementBeeswarm.getBoundingClientRect();
+let widthBeeswarm = boundingRectBeeswarm.width;
+let heightBeeswarm = boundingRectBeeswarm.height;
 
-var widthQuestion = 0.6 * widthBeeswarm;
-var heightQuestion = 0.08 * heightBeeswarm;
+let widthQuestion = 0.55 * widthBeeswarm;
+let heightQuestion = 0.08 * heightBeeswarm;
 
-var numberQuestions = 10 * (0.1 * heightBeeswarm + heightQuestion);
+let numberQuestions;
 
 let optionsUnchecked = {};
-let attributesChecked;
+let questions, attributesChecked;
+let answers;
+let radiusBeeswarm = 4;
+let colorBeeswarm = "#e6610195";
+let colorBeeswarmMissing = "#ffb6c195";
 
-let beeswarm = d3.select("#beeswarm-plots")
+let beeswarmSVG = d3.select("#beeswarm-plots")
                 .append("svg")
-                .attr("width", widthBeeswarm)
-                .attr("height", 10 * heightBeeswarm);
+                .attr("width", widthBeeswarm);
 
-beeswarm.append("text")
-        .attr("dx", 0.4 * widthBeeswarm)
-        .attr("dy", "2em")
-        .text("Attributes")
-        .attr("class", "view-title");
+beeswarmSVG.append("text")
+           .attr("x", 0.75 * widthBeeswarm)
+           .attr("y", 0.04 * heightBeeswarm)
+           .attr("class", "visualization-label")
+           .text("Missing");
+
+beeswarmSVG.append("text")
+           .attr("x", 0.9 * widthBeeswarm)
+           .attr("y", 0.04 * heightBeeswarm)
+           .attr("class", "visualization-label")
+           .text("Force");
 
 const yCenter = heightQuestion / 2;
 
@@ -55,8 +64,8 @@ function removeNodes(questionId, category) {
 function appendCheckBoxes(question, questionId, categories, tickPositions) {
     // append question check boxes
     question.append("foreignObject")
-        .attr("x", -0.08 * widthQuestion)
-        .attr("y", 0.375 * heightQuestion)
+        .attr("x", -0.05 * widthQuestion)
+        .attr("y", 0.65 * heightQuestion)
         .attr("width", 0.3 * heightQuestion)
         .attr("height", 0.3 * heightQuestion)
         .append("xhtml:body")
@@ -86,9 +95,11 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
         })
 
     question.append("text")
-            .attr("x", 0)
+            .attr("x", -0.05 * widthQuestion)
             .attr("y", yCenter)
             .attr("dy", ".35em")
+            .attr("dx", ".25em")
+            .attr("class", "question-label")
             .text(questionId);
 
     // append option check boxes
@@ -97,7 +108,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
         let tickPosition = tickPositions.get(category);
         question.append("foreignObject")
             .attr("x", tickPosition - 0.035 * widthQuestion)
-            .attr("y", 1.15 * heightQuestion)
+            .attr("y", 1.2 * heightQuestion)
             .attr("width", 0.3 * heightQuestion)
             .attr("height", 0.3 * heightQuestion)
             .attr("id", `${questionId}-${i}`)
@@ -124,12 +135,32 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
 }
 
 function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
-    const top = number * 0.1 * heightBeeswarm + (number - 1) * heightQuestion;
-    const left = 0.1 * widthBeeswarm;
-    let question = beeswarm.append("g")
+    const top = 0.03 * heightBeeswarm + (number - 1) * (0.1 * heightBeeswarm + heightQuestion);
+    const left = 0.07 * widthBeeswarm;
+    const categoryWidth = widthQuestion / categories.length;
+    let question = beeswarmSVG.append("g")
                         .attr("width", widthQuestion)
                         .attr("height", heightQuestion)
                         .attr("transform",  "translate(" + left + "," + top + ")");
+
+    // calc missingness and display only present values
+    let withCategory = [];
+    let withoutCategory = [];
+
+    dataBeeswarm.forEach(item => {
+        if (item.category !== null && item.category !== '') {
+            withCategory.push(item);
+        } else {
+            withoutCategory.push(item);
+        }
+    });
+
+    const missingness = Object.keys(withoutCategory).length / Object.keys(dataBeeswarm).length * 100;
+    question.append("text")
+            .attr("x", 1.25 * widthQuestion)
+            .attr("y", 0.55 * heightQuestion)
+            .attr("class", "visualization-label")
+            .text(`${missingness.toFixed(2)}%`);
 
     const questionLeft = left;
     const questionRight = widthQuestion + left;
@@ -140,10 +171,10 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
     let tickPositions = new Map(categories.map(d => [d, xScale(d)]));
 
-    let simulation = d3.forceSimulation(dataBeeswarm)
+    let simulation = d3.forceSimulation(withCategory)
                       .force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3))
                       .force("y", d3.forceY(yCenter).strength(0.05))
-                      .force("collide", d3.forceCollide(4.5))
+                      .force("collide", d3.forceCollide(1.1 * radiusBeeswarm))
                       .alphaDecay(0.01)
                       .on("tick", ticked);
 
@@ -161,10 +192,30 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                             .append('line')
                             .attr("x1", d => tickPositions.get(d))
                             .attr("x2", d => tickPositions.get(d))
-                            .attr("y1", yCenter - 5)
-                            .attr("y2", yCenter + 5)
-                            .style('stroke-width', 2)
+                            .attr("y1", yCenter - 3)
+                            .attr("y2", yCenter - 3)
+                            .style('stroke-width', 5)
                             .style('stroke', 'lightgrey');
+
+    // Dashed lines between categories
+    let positions = categories.map((x) => tickPositions.get(x));
+    const separationLines = [];
+    for (let i = 0; i < positions.length - 1; i++) {
+        separationLines.push((positions[i] + positions[i+1]) / 2);
+    }
+
+    question.selectAll(".category-separator")
+            .data(separationLines)
+            .enter()
+            .append("line")
+            .attr("class", "category-separator")
+            .attr("x1", d => d)
+            .attr("x2", d => d)
+            .attr("y1", 0)
+            .attr("y2", heightQuestion)
+            .style("stroke", "#999")
+            .style("stroke-dasharray", "4,3")
+            .style("stroke-width", 1);
 
     const tickLabels = question.selectAll('.tick-label')
                             .data(categories)
@@ -175,21 +226,36 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                             .attr("y", yCenter + 40)
                             .attr("text-anchor", "middle")
                             .text(d => d)
-                            .style("fill", "black")
-                            .style("font-size", "12px");
+                            .style("fill", "black");
+
+    const arcGenerator = d3.arc()
+                        .innerRadius(0)
+                        .outerRadius(radiusBeeswarm);
 
     let circles = question.selectAll(".circ")
-                            .data(dataBeeswarm)
+                            .data(withCategory)
                             .enter()
-                            .append("circle")
-                            .attr("class", "circ")
-                            .attr("fill", "#e66101")
-                            .attr("r", 4);
+                            .append("g")
+                            .attr("class", ".circ");
+
+    circles.append("path")
+        .attr("class", "data-fill")
+        .attr("fill", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
+        .attr("d", d => {
+            const completeness = d.value ?? 1;
+            const endAngle = completeness * 2 * Math.PI;
+            return arcGenerator({ startAngle: 0, endAngle: endAngle });
+        });
+
+    circles.append("circle")
+        .attr("r", radiusBeeswarm)
+        .attr("fill", "none")
+        .attr("stroke", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
+        .attr("stroke-width", 1);
+
 
     function ticked() {
-      circles
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y)
+      circles.attr("transform", d => `translate(${d.x}, ${d.y})`);
     }
 
     let ticks = question.selectAll(".tick-line")
@@ -214,7 +280,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             simulation.force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3));
             simulation.alpha(0.5).restart();
             tickLabels.attr("x", d => tickPositions.get(d));
-            // optimize!
+            // Optimize!
             let i = categories.indexOf(d);
             let checkbox = d3.select(`#${questionId}-${i}`);
             checkbox.attr("x", newX - 0.035 * widthQuestion);
@@ -224,25 +290,78 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             const proportion = (newX - questionLeft) / widthQuestion;
             const categoryRange = d3.max(categories) - d3.min(categories);
             categoriesMap[questionId][d] = d3.min(categories) + categoryRange * proportion;
+            const categoryNew = Math.floor((newX - left) / categoryWidth);
+            questions[questionId]['options_categories'][d] = categoryNew;
+            fetch('/recalculate_graph', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({'attribute_description': questions})
+            })
+            .then(response => response.json())
+            .then(data => {
+                graph.selectAll("*").remove();
+                nodes = data.nodes;
+                edges = data.edges;
+                drawDataItemView();
+            })
+            .catch((error) => { console.error('Error:', error); });
         });
 
     ticks.call(drag);
 
     appendCheckBoxes(question, questionId, categories, tickPositions);
+
+    // Add strength selectors
+    question.append("foreignObject")
+        .attr("x", left + 1.37 * widthQuestion)
+        .attr("y", 0.3 * heightQuestion)
+        .attr("width", 0.16 * widthQuestion)
+        .attr("height", 0.4 * heightQuestion)
+        .attr("id", `strength-${questionId}`)
+        .append("xhtml:body")
+        .append("input")
+        .attr("type", "number")
+        .attr("min", 0)
+        .attr("max", 5)
+        .attr("step", 0.5)
+        .attr("value", 0)
+        .attr("class", "question-slider")
+        .on("change", function () {
+            const value = +this.value;
+            applyQuestionBasedForceGraph(questionId, value);
+    });
 }
 
-var categoriesMap = {};
+let categoriesMap = {};
 
 d3.json("/attributes_items").then(data => {
-    var questions = data.attributes;
-    var answers = data.items;
+    questions = data.attributes;
+    answers = data.items;
+    let groupings = data.groupings;
     attributesChecked = new Set(Object.keys(questions));
+    console.log(questions);
+    beeswarmSVG.attr("height", (Object.keys(questions).length + 1) * (heightQuestion + 0.1 * heightBeeswarm));
+
+    const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
+    let individualMissingCounts = new Array(numberOfIndividuals).fill(0);
+    let totalAttributes = Object.keys(answers).length;
+
+    for (let question of Object.keys(answers)) {
+        answers[question].forEach((value, index) => {
+            if (value === null || value === "") {
+                individualMissingCounts[index]++;
+            }
+        });
+    }
 
     number = 1;
-    for (const [key, value] of Object.entries(questions)) {
+    for (const key of data.attributesOrder) {
+        const value = questions[key];
         categoriesMap[key] = value.options.reduce((acc, curr) => { acc[curr] = curr; return acc; }, {});
-        let answersObjects = answers[key].map(d => ({ category: d }));
-        createQuestionBeeswarm(value.options, answersObjects, number, key);
+        let answersObjects = answers[key].map((d, index) => ({ category: d,
+                                                               value: 1 - individualMissingCounts[index] / totalAttributes }));
+        let options = value.options.map(d => d.toString())
+        createQuestionBeeswarm(options, answersObjects, number, key);
         number++;
     }
 });
