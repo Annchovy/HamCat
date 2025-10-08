@@ -213,9 +213,9 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
     let nodeMax = nodeA.id > nodeB.id ? nodeA.id : nodeB.id;
     if (edges[nodeMin][nodeMax].includes(question)) {
-        return 5000 * strength
+        return -200 * strength
     }
-    return -5000 * strength
+    return 1000 * strength
 }
 
 function questionForce(question, strength) {
@@ -227,21 +227,36 @@ function questionForce(question, strength) {
         for (let j = i + 1; j < nodes.length; ++j) {
           const nodeB = nodes[j];
 
-          const dx = nodeB.x - nodeA.x;
-          const dy = nodeB.y - nodeA.y;
-          let distSq = dx * dx + dy * dy || 1;
+          const dx = nodeA.x - nodeB.x;
+          const dy = nodeA.y - nodeB.y;
+          let distSquare = dx * dx  || 1;
+          let dist = Math.sqrt(distSquare);
+          let restLength = widthGraph;
 
           let forceStrength = defineQuestionForce(nodeA, nodeB, question, strength);
+          let force;
 
-          const force = forceStrength * alpha / distSq;
+          if (force < 0) {
+            force = distSquare > 0 ? forceStrength * alpha / distSquare : 0.1;
+            force = distSquare > widthGraph / 2 ? 0 : force;
+          }
+          else {
+            force = distSquare > 5 * (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
+          }
 
           const fx = force * dx;
-          const fy = force * dy;
+          //const fy = force * dy;
 
-          nodeA.vx -= fx;
-          //nodeA.vy -= fy;
-          nodeB.vx += fx;
-          //nodeB.vy += fy;
+          if (nodeA.degree > nodeB.degree) {
+            nodeA.vx -= fx;
+          }
+          if (nodeB.degree > nodeA.degree) {
+            nodeB.vx += fx;
+          }
+          if (nodeA.degree == nodeB.degree) {
+            nodeA.vx -= fx;
+            nodeB.vx += fx;
+          }
         }
     }
   }
@@ -257,9 +272,16 @@ function questionForce(question, strength) {
 function applyQuestionBasedForceGraph(question, strength) {
     if (strength == 0) {
         simulationGraph.force(`questionForce-${question}!`, null);
+        simulationGraph.force(
+       "center",
+       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
+    )
     }
-    simulationGraph.force(`questionForce-${question}!`, questionForce(question, strength));
-    simulationGraph.alpha(0.5).restart();
+    else {
+        simulationGraph.force('center', null);
+        simulationGraph.force(`questionForce-${question}!`, questionForce(question, strength));
+    }
+    simulationGraph.alpha(1).restart();
 }
 
 
@@ -309,9 +331,13 @@ function drawCircles(nodesData, depth, nodeFocusId) {
       "collide",
       d3.forceCollide((d) => d.r + 1),
     )
-    .force(
+    /*.force(
       "charge",
       d3.forceManyBody().strength((d) => -d.r),
+    )*/
+    .force(
+       "center",
+       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
     )
     .force(
        "hierarchyCoordinateY",
@@ -339,12 +365,12 @@ function drawCircles(nodesData, depth, nodeFocusId) {
         .distance(radiusMax + 5)
         .strength(0.1),
     )*/
-    .force(
+    /*.force(
       "linkSameGroup",
       d3.forceLink(linksSameGroup)
         .distance(radiusMax + 0.5)
         .strength(1),
-    )
+    )*/
     .on("tick", () => {
       nodesData.forEach((node) => {
         let topY = node.degree * heightSection + sectionBB.y;
@@ -484,6 +510,6 @@ d3.json("/extract_graph").then((data) => {
       return accumulator;
     }, {});
   console.log(attributesOrder.length);
-  graphSVG.attr("height", (attributesOrder.length + 2) * heightSection);
+  graphSVG.attr("height",  1.2 * (attributesOrder.length + 2) * heightSection);
   drawDataItemView();
 });

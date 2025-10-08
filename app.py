@@ -45,7 +45,7 @@ def get_differences(values1: list, values2: list, attributes: list, attribute_de
         attribute = attributes[i]
         options_categories = attribute_description[attribute]['options_categories']
         value1, value2 = str(values1[i]), str(values2[i])
-        if value1 != value2 and options_categories[value1] != options_categories[value2]:
+        if not value1 or not value2 or options_categories[value1] != options_categories[value2]:
             differences.append(attribute)
     return differences
 

@@ -107,7 +107,7 @@ function drawEntropyMap(depth) {
   }
 
   const scrollContainer = document.getElementById("hamming-graph");
-  const contentHeight = scrollContainer.scrollHeight;
+  const contentHeight = scrollContainer.scrollHeight / 1.2;
 
   const visibleHeight = scrollContainer.clientHeight; // -0.1 * height - header height
   const proportion = visibleHeight / contentHeight;
@@ -130,8 +130,7 @@ function setupScrollSync(depth) {
 
   if (!entropyMarker.empty()) {
     scrollContainer.addEventListener("scroll", () => {
-      const contentHeight = scrollContainer.scrollHeight;
-      const visibleHeight = scrollContainer.clientHeight;
+      const contentHeight = scrollContainer.scrollHeight / 1.2;
       const scrollTop = scrollContainer.scrollTop;
 
       const proportion = scrollTop / contentHeight;

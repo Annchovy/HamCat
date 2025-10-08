@@ -12,12 +12,12 @@ let optionsUnchecked = {};
 let questions, attributesChecked;
 let answers;
 let radiusBeeswarm = 4;
-let colorBeeswarm = "#e6610195";
-let colorBeeswarmMissing = "#ffb6c195";
+let colorBeeswarm = "#f4a582";
+let colorBeeswarmMissing = "#d6604d";
 
 let beeswarmSVG = d3.select("#beeswarm-plots")
-                .append("svg")
-                .attr("width", widthBeeswarm);
+                    .append("svg")
+                    .attr("width", widthBeeswarm);
 
 beeswarmSVG.append("text")
            .attr("x", 0.75 * widthBeeswarm)
@@ -61,6 +61,36 @@ function removeNodes(questionId, category) {
     }
 }
 
+function updateCirclesBasedOnOption(questionId, category, opacity) {
+    let circleIds = [];
+
+    const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
+    for (let i = 0; i < numberOfIndividuals; i++) {
+        if (answers[questionId][i] == category) {
+            for (const key of Object.keys(answers)) {
+                circleIds.push(`${key}-${answers['id'][i]}`);
+            }
+        }
+    }
+
+     circleIds.forEach(id => {
+        d3.select(`#${CSS.escape(id)}`).transition().attr("opacity", opacity);
+    });
+}
+
+function updateCirclesBasedOnQuestion(questionId, opacity) {
+    let circleIds = [];
+    const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
+    for (let i = 0; i < numberOfIndividuals; i++) {
+        circleIds.push(`${questionId}-${answers['id'][i]}`);
+    }
+
+     circleIds.forEach(id => {
+        d3.select(`#${CSS.escape(id)}`).transition().attr("opacity", opacity);
+    });
+}
+
+
 function appendCheckBoxes(question, questionId, categories, tickPositions) {
     // append question check boxes
     question.append("foreignObject")
@@ -77,8 +107,12 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
         .on("change", function() {
             const isChecked = d3.select(this).property("checked");
             const attribute = d3.select(this).attr("id");
-            if (isChecked) { attributesChecked.add(attribute); }
-            else { attributesChecked.delete(attribute); }
+            if (isChecked) {
+            attributesChecked.add(attribute);
+            updateCirclesBasedOnQuestion(questionId, 1)
+            }
+            else { attributesChecked.delete(attribute);
+            updateCirclesBasedOnQuestion(questionId, 0.3)}
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -111,7 +145,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             .attr("y", 1.2 * heightQuestion)
             .attr("width", 0.3 * heightQuestion)
             .attr("height", 0.3 * heightQuestion)
-            .attr("id", `${questionId}-${i}`)
+            .attr("id", `tick-${questionId}-${i}`)
             .append("xhtml:body")
             .append("input")
             .attr("type", "checkbox")
@@ -121,11 +155,13 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
                 const isChecked = d3.select(this).property("checked");
                 if (isChecked) {
                     optionsUnchecked[questionId].delete(category);
+                    updateCirclesBasedOnOption(questionId, category, 1);
                     addNodes(questionId, category);
                 }
                 else {
                     if (questionId in optionsUnchecked) { optionsUnchecked[questionId].add(category); }
                     else { optionsUnchecked[questionId] = new Set([category]); }
+                    updateCirclesBasedOnOption(questionId, category, 0.3);
                     removeNodes(questionId, category);
                 }
                 graph.selectAll("*").remove();
@@ -233,26 +269,17 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .outerRadius(radiusBeeswarm);
 
     let circles = question.selectAll(".circ")
-                            .data(withCategory)
-                            .enter()
-                            .append("g")
-                            .attr("class", ".circ");
-
-    circles.append("path")
-        .attr("class", "data-fill")
-        .attr("fill", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
-        .attr("d", d => {
-            const completeness = d.value ?? 1;
-            const endAngle = completeness * 2 * Math.PI;
-            return arcGenerator({ startAngle: 0, endAngle: endAngle });
-        });
-
-    circles.append("circle")
-        .attr("r", radiusBeeswarm)
-        .attr("fill", "none")
-        .attr("stroke", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
-        .attr("stroke-width", 1);
-
+                        .data(withCategory)
+                        .enter()
+                        .append("path")
+                        .attr("class", "circ")
+                        .attr("id", d => `${questionId}-${d.id}`)
+                        .attr("fill", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
+                        .attr("d", d => {
+                            const completeness = d.value ?? 1;
+                            const endAngle = completeness * 2 * Math.PI;
+                            return arcGenerator({ startAngle: 0, endAngle: endAngle });
+                        });
 
     function ticked() {
       circles.attr("transform", d => `translate(${d.x}, ${d.y})`);
@@ -282,7 +309,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             tickLabels.attr("x", d => tickPositions.get(d));
             // Optimize!
             let i = categories.indexOf(d);
-            let checkbox = d3.select(`#${questionId}-${i}`);
+            let checkbox = d3.select(`#tick-${questionId}-${i}`);
             checkbox.attr("x", newX - 0.035 * widthQuestion);
         })
         .on("end", function(event, d) {
@@ -359,7 +386,8 @@ d3.json("/attributes_items").then(data => {
         const value = questions[key];
         categoriesMap[key] = value.options.reduce((acc, curr) => { acc[curr] = curr; return acc; }, {});
         let answersObjects = answers[key].map((d, index) => ({ category: d,
-                                                               value: 1 - individualMissingCounts[index] / totalAttributes }));
+                                                               value: 1 - individualMissingCounts[index] / totalAttributes,
+                                                               id: answers['id'][index]}));
         let options = value.options.map(d => d.toString())
         createQuestionBeeswarm(options, answersObjects, number, key);
         number++;
