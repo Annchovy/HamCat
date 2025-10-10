@@ -8,13 +8,14 @@ let heightGraphSVG = boundingRect.height;
 
 let widthGraph = 0.85 * widthGraphSVG;
 let heightGraph = 0.6 * heightGraphSVG;
-let heightSection = 0.2 * heightGraph;
+let heightDegree = 0.15 * heightGraph;
+let graphTranslationY = 0.05 * heightBeeswarm;
 
 let sectionBB = {
   x: 0.05 * widthGraph,
-  y: 0.15 * heightSection,
+  y: 0.15 * heightDegree,
   width: 0.9 * widthGraph,
-  height: 0.7 * heightSection,
+  height: 0.9 * heightDegree,
 };
 let sectionHeights = [];
 
@@ -42,7 +43,10 @@ let numberRespondentsRange;
 let graphSVG = d3
   .select("#hamming-graph")
   .append("svg")
-  .attr("width", widthGraphSVG);
+  .attr("width", widthGraphSVG)
+  .attr("transform", `translate(0, ${graphTranslationY})`)
+
+//graphSVG.append("text").text("Hamming Distance")
 
 let graph = graphSVG
   .append("g")
@@ -52,7 +56,6 @@ let graph = graphSVG
     "transform",
     "translate(" + 0.075 * widthGraphSVG + ", 0)",
   );
-
 
 
 // find max separation degree and build sections
@@ -65,10 +68,10 @@ function buildSections(depth) {
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
       .attr("x", sectionBB.x - 0.075 * widthGraph)
-      .attr("y", (i - 0.5) * heightSection)
+      .attr("y", (i - 0.5) * heightDegree)
       .text(i - 1);
 
-    let line = { x1: 0, x2: widthGraph, y: i * heightSection };
+    let line = { x1: 0, x2: widthGraph, y: i * heightDegree };
     lines.push(line);
   }
 
@@ -215,7 +218,7 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     if (edges[nodeMin][nodeMax].includes(question)) {
         return -200 * strength
     }
-    return 1000 * strength
+    return 2000 * strength
 }
 
 function questionForce(question, strength) {
@@ -284,6 +287,74 @@ function applyQuestionBasedForceGraph(question, strength) {
     simulationGraph.alpha(1).restart();
 }
 
+function initializeSimulation(nodesData) {
+    simulationGraph = d3.forceSimulation(nodesData)
+    .force(
+      "collide",
+      d3.forceCollide((d) => d.r + 1),
+    )
+    /*.force(
+      "charge",
+      d3.forceManyBody().strength((d) => -d.r),
+    )*/
+    .force(
+       "center",
+       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
+    )
+    .force(
+       "hierarchyCoordinateY",
+       d3.forceY((d) => (d.degree + 0.5) * heightDegree).strength(5),
+    )
+    /*.force(
+      "firstSectionForceLeft",
+      d3.forceX((d) => d.degree === degreeNonEmpty ? sectionBB.x : null)
+        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].left * 0.01 : 0)
+    )
+    .force(
+      "firstSectionForceRight",
+      d3.forceX((d) => d.degree === degreeNonEmpty ? widthGraph : null)
+        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].right * 0.01 : 0)
+    )*/
+    /*.force(
+      "linkVertical",
+      d3.forceLink(links.vertical)
+        .distance(radiusMax + 5)
+        .strength(0.1),
+    )*/
+    /*.force(
+      "linkHorizontal",
+      d3.forceLink(links.horizontal)
+        .distance(radiusMax + 5)
+        .strength(0.1),
+    )*/
+    /*.force(
+      "linkSameGroup",
+      d3.forceLink(linksSameGroup)
+        .distance(radiusMax + 0.5)
+        .strength(1),
+    )*/
+    .on("tick", () => {
+      nodesData.forEach((node) => {
+        let topY = node.degree * heightDegree + sectionBB.y;
+        let bottomY = node.degree * heightDegree + sectionBB.y + sectionBB.height;
+        node.x = Math.max(
+          sectionBB.x,
+          Math.min(sectionBB.x + sectionBB.width - node.r, node.x),
+        );
+        node.y = Math.max(topY, Math.min(bottomY - node.r, node.y));
+      });
+      graph
+          .selectAll(".node-group")
+          .data(nodesData)
+          .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+
+    })
+    .on("end", () => {
+      drawInnerCircles(nodesData);
+      //drawLinks(linksVertical, colorLinksHD1);
+      //drawLinks(linksSameGroup, colorLinksSameGroup);
+    });
+}
 
 function drawCircles(nodesData, depth, nodeFocusId) {
   nodesData.sort((a, b) => a.id - b.id);
@@ -326,72 +397,7 @@ function drawCircles(nodesData, depth, nodeFocusId) {
   .attr("fill", (d) => d.fill);
 
   // Forces for nodes
-  simulationGraph = d3.forceSimulation(nodesData)
-    .force(
-      "collide",
-      d3.forceCollide((d) => d.r + 1),
-    )
-    /*.force(
-      "charge",
-      d3.forceManyBody().strength((d) => -d.r),
-    )*/
-    .force(
-       "center",
-       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
-    )
-    .force(
-       "hierarchyCoordinateY",
-       d3.forceY((d) => (d.degree + 0.5) * heightSection).strength(5),
-    )
-    /*.force(
-      "firstSectionForceLeft",
-      d3.forceX((d) => d.degree === degreeNonEmpty ? sectionBB.x : null)
-        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].left * 0.01 : 0)
-    )
-    .force(
-      "firstSectionForceRight",
-      d3.forceX((d) => d.degree === degreeNonEmpty ? widthGraph : null)
-        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].right * 0.01 : 0)
-    )*/
-    /*.force(
-      "linkVertical",
-      d3.forceLink(links.vertical)
-        .distance(radiusMax + 5)
-        .strength(0.1),
-    )*/
-    /*.force(
-      "linkHorizontal",
-      d3.forceLink(links.horizontal)
-        .distance(radiusMax + 5)
-        .strength(0.1),
-    )*/
-    /*.force(
-      "linkSameGroup",
-      d3.forceLink(linksSameGroup)
-        .distance(radiusMax + 0.5)
-        .strength(1),
-    )*/
-    .on("tick", () => {
-      nodesData.forEach((node) => {
-        let topY = node.degree * heightSection + sectionBB.y;
-        let bottomY = node.degree * heightSection + sectionBB.y + sectionBB.height;
-        node.x = Math.max(
-          sectionBB.x,
-          Math.min(sectionBB.x + sectionBB.width - node.r, node.x),
-        );
-        node.y = Math.max(topY, Math.min(bottomY - node.r, node.y));
-      });
-      graph
-          .selectAll(".node-group")
-          .data(nodesData)
-          .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-
-    })
-    .on("end", () => {
-      drawInnerCircles(nodesData);
-      //drawLinks(linksVertical, colorLinksHD1);
-      //drawLinks(linksSameGroup, colorLinksSameGroup);
-    });
+  initializeSimulation(nodesData);
 }
 
 function calculateOuterRadius(count, radius) {
@@ -433,7 +439,7 @@ function drawGraph(nodeId, depth) {
 
   /*let nodeFocus = {
     x: 0.5 * widthGraph,
-    y: 0.5 * heightSection,
+    y: 0.5 * heightDegree,
     r: radiusScale(nodes[nodeId]["count"]),
     fill: colorNode,
     node: nodes[nodeId],
@@ -447,8 +453,8 @@ function drawGraph(nodeId, depth) {
   let rightX = sectionBB.x + sectionBB.width;
 
   for (let i = 0; i <= depth; i++) {
-    let topY = i * heightSection + sectionBB.y;
-    let bottomY = i * heightSection + sectionBB.y + sectionBB.height;
+    let topY = i * heightDegree + sectionBB.y;
+    let bottomY = i * heightDegree + sectionBB.y + sectionBB.height;
 
     let randomX = d3.randomUniform(leftX, rightX);
     let randomY = d3.randomUniform(topY, bottomY);
@@ -459,7 +465,7 @@ function drawGraph(nodeId, depth) {
       let rCurrent = radiusScale(nodes[nodeCurrentId]["count"]);
       let circle = {
         x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX(),
-        y: nodeCurrentId == nodeId ? 0.5 * heightSection : randomY(),
+        y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY(),
         r: rCurrent,
         fill: colorNode,
         node: nodes[nodeCurrentId],
@@ -501,6 +507,7 @@ function drawDataItemView() {
 
 
 d3.json("/extract_graph").then((data) => {
+  d3.select("#dataset-name").text(data.name);
   nodes = data.nodes;
   edges = data.edges;
   groupings = data.groupings;
@@ -510,6 +517,6 @@ d3.json("/extract_graph").then((data) => {
       return accumulator;
     }, {});
   console.log(attributesOrder.length);
-  graphSVG.attr("height",  1.2 * (attributesOrder.length + 2) * heightSection);
+  graphSVG.attr("height",  1.2 * (attributesOrder.length + 2) * heightDegree);
   drawDataItemView();
 });

@@ -1,13 +1,7 @@
 let tooltip = d3
   .select("#hamming-graph")
   .append("div")
-  .style("position", "absolute")
-  .style("opacity", 0)
-  .style("background-color", "white")
-  .style("border", "solid")
-  .style("border-width", "2px")
-  .style("border-radius", "5px")
-  .style("padding", "5px");
+  .attr("class", "tooltip");
 
 let mouseover = function (event, d) {
   tooltip.style("opacity", 1);
@@ -27,6 +21,6 @@ let mousemove = function (event, d) {
 };
 
 let mouseleave = function (event, d) {
-  tooltip.style("opacity", 0);
-  d3.select(this).style("stroke", "none").style("opacity", 0.95);
+    tooltip.style("opacity", 0);
+    d3.select(this).style("stroke", "none").style("opacity", 0.95);
 };

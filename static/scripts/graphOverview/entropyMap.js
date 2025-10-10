@@ -37,21 +37,29 @@ function computeEntropy(nodeIds) {
 function drawEntropyMap(depth) {
   d3.select("#entropy-map-container").selectAll("*").remove();
   let translateX = 0.1 * boundingRectEntropyMap.width;
-  let translateY = 0.1 * boundingRectEntropyMap.height;
+  let translateY = 0;
   entropyMapSVG = d3.select("#entropy-map-container")
                     .append("svg")
                     .attr("width", boundingRectEntropyMap.width)
-                    .attr("height", 0.85 * boundingRectEntropyMap.height)
+                    .attr("height", 0.95 * boundingRectEntropyMap.height)
                     .attr(
                         "transform",
                         "translate(" + translateX + "," + translateY + ")",
                       );
 
-  entropyMapSVG.append("text")
-               .attr("x", 0)
-               .attr("y", 0.02 * boundingRectEntropyMap.height)
-               .attr("class", "visualization-label")
+    entropyMapSVG.append("text")
+               .attr("transform",
+                      "translate(" + 0.15 * boundingRectEntropyMap.width + "," +
+                      0.14 * boundingRectEntropyMap.height + ")rotate(-45)")
+               .attr("class", "view-label")
                .text("Entropy Map");
+
+    entropyMapSVG.append("text")
+               .attr("transform", "translate(" + 0.4 * boundingRectEntropyMap.width + "," +
+               0.14 * boundingRectEntropyMap.height + ")rotate(-45)")
+               .attr("class", "view-label")
+               .text("Items Count");
+
 
   const sectionHeight = entropyMapHeight / (depth + 1);
 
@@ -70,7 +78,7 @@ function drawEntropyMap(depth) {
   const sectionX = 0.11 * boundingRectEntropyMap.width;
 
   for (let i = 0; i <= depth; i++) {
-    const sectionY = i * sectionHeight + 0.05 * boundingRectEntropyMap.height;
+    const sectionY = i * sectionHeight + 0.15 * boundingRectEntropyMap.height;
 
     const nodeIds = degrees[i];
     const totalCount = nodeIds.reduce((sum, nodeId) => sum + nodes[nodeId].count, 0);
@@ -78,11 +86,9 @@ function drawEntropyMap(depth) {
     const entropy = computeEntropy(nodeIds);
     const color = entropyColor(entropy);
 
-    const group = entropyMapSVG.append("g")
-      .attr("transform", `translate(${sectionX}, ${sectionY})`);
+    const group = entropyMapSVG.append("g").attr("transform", `translate(${sectionX}, ${sectionY})`);
 
-    group
-      .append("text")
+    group.append("text")
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
       .attr("x", -0.07 * boundingRectEntropyMap.width)
@@ -107,15 +113,14 @@ function drawEntropyMap(depth) {
   }
 
   const scrollContainer = document.getElementById("hamming-graph");
-  const contentHeight = scrollContainer.scrollHeight / 1.2;
-
-  const visibleHeight = scrollContainer.clientHeight; // -0.1 * height - header height
+  const contentHeight = heightDegree * (depth + 1);
+  const visibleHeight = scrollContainer.clientHeight * 0.89;
   const proportion = visibleHeight / contentHeight;
 
   entropyMapSVG.append("rect")
     .attr("class", "entropy-scroll-marker")
     .attr("x", sectionX)
-    .attr("y",  0.05 * boundingRectEntropyMap.height)
+    .attr("y",  0.15 * boundingRectEntropyMap.height)
     .attr("width", 0.15 * boundingRectEntropyMap.width)
     .attr("height", proportion * sectionHeight * (depth + 1))
     .attr("stroke", "#A8DCAB")
@@ -130,12 +135,12 @@ function setupScrollSync(depth) {
 
   if (!entropyMarker.empty()) {
     scrollContainer.addEventListener("scroll", () => {
-      const contentHeight = scrollContainer.scrollHeight / 1.2;
+      const contentHeight = heightDegree * (depth + 1);
       const scrollTop = scrollContainer.scrollTop;
 
       const proportion = scrollTop / contentHeight;
 
-      entropyMarker.attr("y", 0.05 * boundingRectEntropyMap.height + proportion * entropyMapHeight);
+      entropyMarker.attr("y", 0.15 * boundingRectEntropyMap.height + proportion * entropyMapHeight);
     });
   }
 }

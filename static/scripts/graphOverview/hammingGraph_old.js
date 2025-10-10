@@ -50,7 +50,7 @@ graphCanvas
   .attr("dx", 0.4 * widthGraphSVG)
   .attr("dy", "2em")
   .text("Data Items")
-  .attr("class", "view-title");
+  .attr("class", "view-label");
 
 let graph = graphCanvas
   .append("g")

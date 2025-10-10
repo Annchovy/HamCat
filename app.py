@@ -8,7 +8,8 @@ from typing import Optional
 #FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
 #FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
 
-FILE_RESPONSES = 'data/dummy_data/dummy_answers_h1'
+DATASET_NAME = 'dummy_answers_h1'
+FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
 FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
 
 #IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
@@ -88,7 +89,8 @@ def calculate_graph(nodes: dict, attribute_description: dict) -> tuple:
 def extract_graph():
     nodes = calculate_nodes(COLUMNS)
     edges, groupings = calculate_graph(nodes, ATTRIBUTES_DESCRIPTION)
-    return jsonify({'nodes': nodes,
+    return jsonify({'name': DATASET_NAME,
+                    'nodes': nodes,
                     'edges': edges,
                     'groupings': groupings,
                     'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})

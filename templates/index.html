@@ -2,30 +2,32 @@
 <html lang="en">
 <head>
 	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 	<script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-	<div class="top-row">
-		<div class="top-row-content">
-			CatHamEmbed: Visual Analytics for High-Dimensional Categorical and Ordinal Data
+	<div id="modal-overlay" class="overlay hidden">
+		<div class="modal">
+			<button class="guide-button close-button" id="close-guide-button">Close</button>
 		</div>
 	</div>
-	<div class="main-content">
-		<div class="column-1">
-			<div class="view-title">Attribute Frequencies</div>
-			<div class="scrollable" id="beeswarm-plots"></div>
-		</div>
-		<div class="column-2">
-			<div class="view-title">Data Item Graph</div>
-			<div class="scrollable" id="hamming-graph"></div>
-		</div>
+	<div class="title-row">
+		CatHamEmbed: Visual Analytics for High-Dimensional Categorical and Ordinal Data
+		<button class="guide-button" id="open-guide-button">Getting started</button>
+	</div>
+	<div class="dataset-overview-row" id="dataset-overview"></div>
+	<div class="main-row">
+		<div class="column-1 scrollable" id="attribute-overview"></div>
+		<div class="column 2 scrollable" id="hamming-graph"></div>
 		<div class="column-3" id="entropy-map-container"></div>
 	</div>
-	<script type='text/javascript' src='../static/scripts/requests.js'></script>
-	<script type='text/javascript' src='../static/scripts/entropyMap.js'></script>
-	<script type='text/javascript' src='../static/scripts/hammingGraph.js'></script>
-	<script type='text/javascript' src='../static/scripts/tooltip.js'></script>
-	<script type='text/javascript' src='../static/scripts/hammingGraphLinks.js'></script>
+	<script type='text/javascript' src='../static/scripts/gettingStarted.js'></script>
 	<script type='text/javascript' src='../static/scripts/beeswarm.js'></script>
+	<script type='text/javascript' src='../static/scripts/datasetOverview/datasetOverview.js'></script>
+	<script type='text/javascript' src='../static/scripts/datasetOverview/slider.js'></script>
+	<script type='text/javascript' src='../static/scripts/graphOverview/entropyMap.js'></script>
+	<script type='text/javascript' src='../static/scripts/graphOverview/hammingGraph.js'></script>
+	<script type='text/javascript' src='../static/scripts/graphOverview/tooltipGraph.js'></script>
+	<script type='text/javascript' src='../static/scripts/graphOverview/hammingGraphLinks.js'></script>
 </body>
 </html>

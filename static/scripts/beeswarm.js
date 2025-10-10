@@ -1,37 +1,71 @@
-let elementBeeswarm = d3.select('#beeswarm-plots').node();
+let elementBeeswarm = d3.select('#attribute-overview').node();
 let boundingRectBeeswarm = elementBeeswarm.getBoundingClientRect();
 let widthBeeswarm = boundingRectBeeswarm.width;
 let heightBeeswarm = boundingRectBeeswarm.height;
 
-let widthQuestion = 0.55 * widthBeeswarm;
+let heightAttributeOverviewHeader = 0.1 * heightBeeswarm;
+let heightAttributeOverviewLabels = 0.5 * heightBeeswarm;
+
+let widthQuestion = 0.54 * widthBeeswarm;
 let heightQuestion = 0.08 * heightBeeswarm;
 
-let numberQuestions;
-
-let optionsUnchecked = {};
-let questions, attributesChecked;
-let answers;
 let radiusBeeswarm = 4;
 let colorBeeswarm = "#f4a582";
-let colorBeeswarmMissing = "#d6604d";
 
-let beeswarmSVG = d3.select("#beeswarm-plots")
-                    .append("svg")
-                    .attr("width", widthBeeswarm);
+let numberQuestions, questions, attributesChecked, answers;
+let optionsUnchecked = {};
 
-beeswarmSVG.append("text")
-           .attr("x", 0.75 * widthBeeswarm)
-           .attr("y", 0.04 * heightBeeswarm)
-           .attr("class", "visualization-label")
-           .text("Missing");
+let beeswarmSVG = d3.select("#attribute-overview").append("svg")
+                                              .attr("width", widthBeeswarm)
+                                              .attr("transform", `translate(${0.03 * widthBeeswarm}, 0)`);
 
-beeswarmSVG.append("text")
-           .attr("x", 0.9 * widthBeeswarm)
-           .attr("y", 0.04 * heightBeeswarm)
-           .attr("class", "visualization-label")
-           .text("Force");
+let overviewAttributeHeader = beeswarmSVG.append("g")
+                                           .attr("width", widthBeeswarm)
+                                           .attr("height", heightAttributeOverviewHeader)
+                                           .attr("transform", `translate(0, ${0.05 * heightBeeswarm})`);
+
+overviewAttributeHeader.append("text")
+                       .attr("class", "view-label")
+                       .text("Attribute Overview");
+
+let textsAttributeOverview = ["Check selection boxes below to include attributes and attribute categories in Item Relation Overview to the right.",
+                              "Drag attribute categories to the same region (separated by dashed lines) to merge these categories."];
+let textsAttributeOverviewY = [0.3 * heightAttributeOverviewHeader, 0.55 * heightAttributeOverviewHeader];
+
+for (let i = 0; i < textsAttributeOverview.length; i++) {
+    overviewAttributeHeader.append("text")
+                       .attr("x", 0)
+                       .attr("y", textsAttributeOverviewY[i])
+                       .attr("class", "annotation-level-2")
+                       .style("font-weight", "normal")
+                       .text(textsAttributeOverview[i]);
+}
+
+let overviewAttributeLabels = beeswarmSVG.append("g")
+                                           .attr("width", widthBeeswarm)
+                                           .attr("height", heightAttributeOverviewHeader)
+                                           .attr("transform", `translate(0, ${0.16 * heightBeeswarm})`);
+
+let labelsAttributeOverview = ["Attribute and Attribute Level Counts", "Missing %", "Attribute Strength"];
+let labelsAttributeOverviewX = [0,
+                                0.65 * widthBeeswarm,
+                                0.78 * widthBeeswarm];
+
+for (let i = 0; i < labelsAttributeOverview.length; i++) {
+    overviewAttributeLabels.append("text")
+                       .attr("x", labelsAttributeOverviewX[i])
+                       .attr("y", 0)
+                       .attr("class", "annotation-level-1")
+                       .text(labelsAttributeOverview[i]);
+}
+
+
+let overviewAttribute = beeswarmSVG.append("g")
+                                   .attr("width", widthBeeswarm)
+                                   .attr("transform", `translate(0, ${0.2 * heightBeeswarm})`);
 
 const yCenter = heightQuestion / 2;
+
 
 function addNodes(questionId, category) {
     for (const key in nodesRemoved) {
@@ -94,7 +128,7 @@ function updateCirclesBasedOnQuestion(questionId, opacity) {
 function appendCheckBoxes(question, questionId, categories, tickPositions) {
     // append question check boxes
     question.append("foreignObject")
-        .attr("x", -0.05 * widthQuestion)
+        .attr("x", 0)
         .attr("y", 0.65 * heightQuestion)
         .attr("width", 0.3 * heightQuestion)
         .attr("height", 0.3 * heightQuestion)
@@ -129,7 +163,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
         })
 
     question.append("text")
-            .attr("x", -0.05 * widthQuestion)
+            .attr("x", 0)
             .attr("y", yCenter)
             .attr("dy", ".35em")
             .attr("dx", ".25em")
@@ -141,8 +175,8 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
         let category = categories[i];
         let tickPosition = tickPositions.get(category);
         question.append("foreignObject")
-            .attr("x", tickPosition - 0.035 * widthQuestion)
-            .attr("y", 1.2 * heightQuestion)
+            .attr("x", tickPosition - 0.022 * widthQuestion)
+            .attr("y", 1.25 * heightQuestion)
             .attr("width", 0.3 * heightQuestion)
             .attr("height", 0.3 * heightQuestion)
             .attr("id", `tick-${questionId}-${i}`)
@@ -171,13 +205,13 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
 }
 
 function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
-    const top = 0.03 * heightBeeswarm + (number - 1) * (0.1 * heightBeeswarm + heightQuestion);
+    const top = (number - 1) * (0.1 * heightBeeswarm + heightQuestion);
     const left = 0.07 * widthBeeswarm;
     const categoryWidth = widthQuestion / categories.length;
-    let question = beeswarmSVG.append("g")
-                        .attr("width", widthQuestion)
-                        .attr("height", heightQuestion)
-                        .attr("transform",  "translate(" + left + "," + top + ")");
+    let question = overviewAttribute.append("g")
+                                    .attr("width", widthQuestion)
+                                    .attr("height", heightQuestion)
+                                    .attr("transform",  "translate(0," + top + ")");
 
     // calc missingness and display only present values
     let withCategory = [];
@@ -195,8 +229,9 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
     question.append("text")
             .attr("x", 1.25 * widthQuestion)
             .attr("y", 0.55 * heightQuestion)
-            .attr("class", "visualization-label")
-            .text(`${missingness.toFixed(2)}%`);
+            .attr("class", "annotation-level-2")
+            .style("font-weight", "normal")
+            .text(`${missingness.toFixed(2)}`);
 
     const questionLeft = left;
     const questionRight = widthQuestion + left;
@@ -274,7 +309,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .append("path")
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
-                        .attr("fill", d => d.value < 1 ? colorBeeswarmMissing : colorBeeswarm)
+                        .attr("fill", colorBeeswarm)
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
                             const endAngle = completeness * 2 * Math.PI;
@@ -342,7 +377,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
     question.append("foreignObject")
         .attr("x", left + 1.37 * widthQuestion)
         .attr("y", 0.3 * heightQuestion)
-        .attr("width", 0.16 * widthQuestion)
+        .attr("width", 0.125 * widthQuestion)
         .attr("height", 0.4 * heightQuestion)
         .attr("id", `strength-${questionId}`)
         .append("xhtml:body")
@@ -352,7 +387,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
         .attr("max", 5)
         .attr("step", 0.5)
         .attr("value", 0)
-        .attr("class", "question-slider")
+        .attr("class", "question-selector")
         .on("change", function () {
             const value = +this.value;
             applyQuestionBasedForceGraph(questionId, value);
@@ -367,7 +402,10 @@ d3.json("/attributes_items").then(data => {
     let groupings = data.groupings;
     attributesChecked = new Set(Object.keys(questions));
     console.log(questions);
-    beeswarmSVG.attr("height", (Object.keys(questions).length + 1) * (heightQuestion + 0.1 * heightBeeswarm));
+
+    const heightAttributeOverview = (Object.keys(questions).length + 1) * (heightQuestion + 0.05 * heightBeeswarm)
+    const heightBeeswarmSVG = heightAttributeOverviewHeader + heightAttributeOverviewLabels + heightAttributeOverview;
+    beeswarmSVG.attr("height", heightBeeswarmSVG);
 
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
     let individualMissingCounts = new Array(numberOfIndividuals).fill(0);
