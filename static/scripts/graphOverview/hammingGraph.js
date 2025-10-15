@@ -6,15 +6,14 @@ let boundingRect = element.getBoundingClientRect();
 let widthGraphSVG = boundingRect.width;
 let heightGraphSVG = boundingRect.height;
 
-let widthGraph = 0.85 * widthGraphSVG;
+let widthGraph = 0.95 * widthGraphSVG;
 let heightGraph = 0.6 * heightGraphSVG;
 let heightDegree = 0.15 * heightGraph;
-let graphTranslationY = 0.05 * heightBeeswarm;
 
 let sectionBB = {
-  x: 0.05 * widthGraph,
-  y: 0.15 * heightDegree,
-  width: 0.9 * widthGraph,
+  x: 0.03 * widthGraph,
+  y: 0.05 * heightDegree,
+  width: 0.96 * widthGraph,
   height: 0.9 * heightDegree,
 };
 let sectionHeights = [];
@@ -28,50 +27,99 @@ let radiusMin, radiusMax;
 let radiusInner = 5;
 
 // Define node and datapoint colors
-const colorNode = "#6495ED95",
-  colorDatapoint = "#5e3c99";
+const colorNode = "#6495ED50",
+  colorDatapoint = "#1a237e";
   
 const colorLinksHD1 = "#ADD8E640",
   colorLinksSameGroup = "#FFB6C140";
 
-let nodesRemoved = {};
 let degrees;
 
 let simulationGraph;
+let questionForces = new Set([]);
 let numberRespondentsRange;
 
 let graphSVG = d3
   .select("#hamming-graph")
   .append("svg")
-  .attr("width", widthGraphSVG)
-  .attr("transform", `translate(0, ${graphTranslationY})`)
-
-//graphSVG.append("text").text("Hamming Distance")
-
-let graph = graphSVG
-  .append("g")
-  .attr("width", widthGraph)
-  .attr("height", heightGraph)
-  .attr(
-    "transform",
-    "translate(" + 0.075 * widthGraphSVG + ", 0)",
-  );
+  .attr("width", widthGraphSVG);
 
 
-// find max separation degree and build sections
+let overviewItemHeader = graphSVG.append("g")
+                               .attr("width", widthGraph)
+                               .attr("height", heightAttributeOverviewHeader)
+                               .attr("transform", `translate(0, ${0.02 * heightBeeswarm})`);
+
+overviewItemHeader.append("text")
+                   .attr("class", "view-label")
+                   .text("Item Relation Overview");
+
+appendTooltipHint(overviewItemHeader, 190, -rQuestionMark, hintsObject["itemOverview"]);
+
+let textsItemOverview = ["Select a node of interest as a focus node to see its relations with the rest of the nodes. Hover upon a node to get more details.",
+                         "Scroll down to explore all sections."];
+let textsItemOverviewY = [0.3 * heightAttributeOverviewHeader, 0.55 * heightAttributeOverviewHeader];
+
+for (let i = 0; i < textsItemOverview.length; i++) {
+    overviewItemHeader.append("text")
+                       .attr("x", 0)
+                       .attr("y", textsItemOverviewY[i])
+                       .attr("class", "annotation-level-2")
+                       .style("font-weight", "normal")
+                       .text(textsItemOverview[i]);
+}
+
+let entropyMap = graphSVG.append("g")
+                        .attr("id", "entropy-map-container")
+                        .attr("width", widthGraph)
+                        .attr("height", 0.25 * heightGraph)
+                        .attr("transform", `translate(0, ${0.125 * heightBeeswarm})`);
+
+const entropyMapHeight = 0.25 * heightGraph;
+const entropyMapWidth = 0.95 * widthGraph;
+
+graphSVG.append("text")
+          .attr("class", "annotation-level-1")
+          .attr("x", 0)
+          .attr("y", 0.125 * heightBeeswarm)
+          .text("Entropy Map");
+
+appendTooltipHint(graphSVG, 100, 0.125 * heightBeeswarm-rQuestionMark, hintsObject["entropyMap"]);
+
+graphSVG.append("text")
+        .attr("class", "annotation-level-1")
+        .attr("x", 0)
+        .attr("y", 0.48 * heightGraph)
+        .text("Ego Hamming Graph");
+
+appendTooltipHint(graphSVG, 155, 0.465 * heightGraph, hintsObject["egoHammingGraph"]);
+
+graphSVG.append("text")
+        .attr("class", "annotation-level-2")
+        .attr("x", 0)
+        .attr("y", 0.54 * heightGraph)
+        .text("Hamming distance");
+
+let graph = graphSVG.append("g")
+                      .attr("width", widthGraph)
+                      .attr("height", heightGraph)
+                      .attr("transform", `translate(0, ${0.53 * heightGraph})`);
+
+
+// Find max separation degree and build sections
 function buildSections(depth) {
   let lines = [];
 
   for (let i = 1; i <= depth + 1; i++) {
     graph
       .append("text")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("x", sectionBB.x - 0.075 * widthGraph)
+      .attr("class", "annotation-level-2")
+      .attr("dy", "0.4em")
+      .attr("x", 0)
       .attr("y", (i - 0.5) * heightDegree)
       .text(i - 1);
-
-    let line = { x1: 0, x2: widthGraph, y: i * heightDegree };
+    let stroke = i == depth + 1 ? "black" : "lightgrey"
+    let line = { x1: 0, x2: widthGraph, y: i * heightDegree, stroke: stroke };
     lines.push(line);
   }
 
@@ -84,7 +132,7 @@ function buildSections(depth) {
     .attr("y1", (d) => d.y)
     .attr("x2", (d) => d.x2)
     .attr("y2", (d) => d.y)
-    .attr("stroke", "lightgrey")
+    .attr("stroke", (d) => d.stroke)
     .attr("stroke-width", 1);
 }
 
@@ -114,30 +162,68 @@ function drawInnerCirclesPerNode(circlesInnerData, nodeGroup) {
       nodeGroup
         .selectAll(".inner-circle")
         .data(circlesInnerData)
-        .attr("cx", (d) => d.x)
-        .attr("cy", (d) => d.y);
+        .attr("transform", d => `translate(${d.x}, ${d.y})`)
+        .attr("d", arcGenerator);
     });
 
-  nodeGroup
-    .selectAll(".inner-circle")
-    .data(circlesInnerData)
-    .enter()
-    .append("circle")
-    .attr("class", "inner-circle")
-    .attr("cx", (d) => d.x)
-    .attr("cy", (d) => d.y)
-    .attr("r", (d) => d.r)
-    .style("fill", colorDatapoint);
+    const arcGenerator = d3.arc()
+                        .innerRadius(0)
+                        .outerRadius(d => d.r)
+                        .startAngle(0)
+                        .endAngle(d => {
+                          const completeness = 1 - d.missingness;
+                          return completeness * 2 * Math.PI;
+                        });
+
+    const opacityScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([0.3, 1]);
+
+    nodeGroup
+        .selectAll(".inner-circle")
+        .data(circlesInnerData)
+        .enter()
+        .append("path")
+        .attr("class", "inner-circle")
+        .attr("transform", d => `translate(${d.x}, ${d.y})`)
+        .attr("d", d => arcGenerator(d))
+        .style("fill", colorDatapoint)
+        .style("fill-opacity", d => opacityScale(d.probability))
+        .on("mouseover", mouseoverItemNode)
+        .on("mousemove", mousemoveItemNode)
+        .on("mouseleave", mouseleaveItemNode);
 }
 
-
 function drawInnerCircles(nodesData) {
+  let circlesInnerData;
   nodesData.forEach((node) => {
-    const circlesInnerData = Array.from({ length: node.node.count }, () => ({
-      x: 0,
-      y: 0,
-      r: radiusInner,
-    }));
+    if (!('grouped_info' in node.node)) {
+        circlesInnerData = Array.from({ length: node.node.count }, (_, i) => ({
+          x: 0,
+          y: 0,
+          r: radiusInner,
+          missingness: 0,
+          probability: 1,
+          id: node.node.ids[i]
+        }));
+    }
+    else {
+        circlesInnerData = [];
+        for (const group of node.node.grouped_info) {
+            for (const itemId of group.ids) {
+                const circle = {
+                    x: 0,
+                    y: 0,
+                    r: radiusInner,
+                    id: itemId,
+                    missing_attributes: group.missing_attributes,
+                    probability: group.probability.toFixed(2),
+                    missingness: group.missingness.toFixed(2)
+                };
+                circlesInnerData.push(circle);
+            }
+        }
+    }
     const nodeGroup = graph.select(`#node-group-${node.id}`);
     drawInnerCirclesPerNode(circlesInnerData, nodeGroup);
   });
@@ -216,9 +302,12 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
     let nodeMax = nodeA.id > nodeB.id ? nodeA.id : nodeB.id;
     if (edges[nodeMin][nodeMax].includes(question)) {
-        return -200 * strength
+        return -200 * strength;
     }
-    return 2000 * strength
+    if (nodeA.degree == nodeB.degree) {
+        return 100 * strength;
+    }
+    return 2000 * strength;
 }
 
 function questionForce(question, strength) {
@@ -239,12 +328,13 @@ function questionForce(question, strength) {
           let forceStrength = defineQuestionForce(nodeA, nodeB, question, strength);
           let force;
 
+          //needs more work!!!!!
           if (force < 0) {
-            force = distSquare > 0 ? forceStrength * alpha / distSquare : 0.1;
-            force = distSquare > widthGraph / 2 ? 0 : force;
+            force = dist > 0 ? forceStrength * alpha / distSquare : 0.1;
+            force = dist > widthGraph / 2 ? 0 : force;
           }
           else {
-            force = distSquare > 5 * (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
+            force = dist > (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
           }
 
           const fx = force * dx;
@@ -275,36 +365,79 @@ function questionForce(question, strength) {
 function applyQuestionBasedForceGraph(question, strength) {
     if (strength == 0) {
         simulationGraph.force(`questionForce-${question}!`, null);
-        simulationGraph.force(
-       "center",
-       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
-    )
+        questionForces.delete(question);
+        if (questionForces.size == 0) {
+            simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
+            simulationGraph.force("hamming", hammingForce(5))
+        }
     }
     else {
+        questionForces.add(question);
         simulationGraph.force('center', null);
+        simulationGraph.force('hamming', null);
         simulationGraph.force(`questionForce-${question}!`, questionForce(question, strength));
     }
     simulationGraph.alpha(1).restart();
 }
 
+
+function hammingForce(strength = 0.1) {
+    let nodes;
+
+    function force(alpha) {
+      for (let i = 0; i < nodes.length; ++i) {
+        for (let j = i + 1; j < nodes.length; ++j) {
+          const nodeA = nodes[i];
+          const nodeB = nodes[j];
+
+          if (nodeA.degree !== nodeB.degree) continue;
+
+          const hd = edges[i][j].length;
+          //const forceStrength = strength / (hd + 1);
+          let forceStrength;
+
+          const dx = nodeB.x - nodeA.x;
+          const dy = nodeB.y - nodeA.y;
+          const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+          const nx = dx / distance;
+          const ny = dy / distance;
+
+          if (hd === 1) {
+            forceStrength = strength * distance;
+          } else if (hd > 1) {
+            forceStrength = -(hd * strength / distance);
+          }
+
+          const fx = nx * forceStrength * alpha;
+          const fy = ny * forceStrength * alpha;
+
+          nodeA.vx += fx;
+          nodeA.vy += fy;
+          nodeB.vx -= fx;
+          nodeB.vy -= fy;
+        }
+      }
+    }
+
+    force.initialize = function (_nodes) {
+      nodes = _nodes;
+    };
+
+    return force;
+}
+
 function initializeSimulation(nodesData) {
+    //let linksSameGroup = getLinksSameGroup(nodesData, groupings);
+    let links = getLinksOneDegreeSeparation(nodesData);
+    //let linksHorizontal = formatDataForLinks(links.horizontal, nodesData);
+    let linksVertical = formatDataForLinks(links.vertical, nodesData);
+
     simulationGraph = d3.forceSimulation(nodesData)
-    .force(
-      "collide",
-      d3.forceCollide((d) => d.r + 1),
-    )
-    /*.force(
-      "charge",
-      d3.forceManyBody().strength((d) => -d.r),
-    )*/
-    .force(
-       "center",
-       d3.forceX((d) => widthGraph * 0.5).strength(0.1),
-    )
-    .force(
-       "hierarchyCoordinateY",
-       d3.forceY((d) => (d.degree + 0.5) * heightDegree).strength(5),
-    )
+    .force("collide", d3.forceCollide((d) => d.r + 1))
+    /*.force("charge", d3.forceManyBody().strength((d) => -d.r))*/
+    /*.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))*/
+    .force("coordinateY", d3.forceY((d) => (d.degree + 0.5) * heightDegree).strength(2))
+    .force("hamming", hammingForce(2))
     /*.force(
       "firstSectionForceLeft",
       d3.forceX((d) => d.degree === degreeNonEmpty ? sectionBB.x : null)
@@ -347,7 +480,6 @@ function initializeSimulation(nodesData) {
           .selectAll(".node-group")
           .data(nodesData)
           .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-
     })
     .on("end", () => {
       drawInnerCircles(nodesData);
@@ -358,43 +490,37 @@ function initializeSimulation(nodesData) {
 
 function drawCircles(nodesData, depth, nodeFocusId) {
   nodesData.sort((a, b) => a.id - b.id);
-  let degreeNonEmpty = getFirstNonEmptySection(depth);
-  let nodesChildren = degrees[degreeNonEmpty];
-  let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
-
-  let linksSameGroup = getLinksSameGroup(nodesData, groupings);
-  let links = getLinksOneDegreeSeparation(nodesData);
-  //let linksHorizontal = formatDataForLinks(links.horizontal, nodesData);
-  let linksVertical = formatDataForLinks(links.vertical, nodesData);
+  //let degreeNonEmpty = getFirstNonEmptySection(depth);
+  //let nodesChildren = degrees[degreeNonEmpty];
+  //let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
 
   const nodeGroups = graph
-  .selectAll(".node-group")
-  .data(nodesData)
-  .enter()
-  .append("g")
-  .attr("class", "node-group")
-  .attr("id", (d) => `node-group-${d.id}`)
-  .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-  .style("opacity", 0.95)
-  .on("mouseover", mouseover)
-  .on("mousemove", mousemove)
-  .on("mouseleave", mouseleave)
-  .on("click", function (event, d) {
-    const nodeId = d.id;
-    const depth = computeRelativeMaxDepth(nodeId);
-    tooltip.style("opacity", 0);
-    graph.selectAll("*").remove();
-    constructDegrees(nodeId, depth);
-    buildSections(depth);
-    drawGraph(parseInt(nodeId), depth);
-    drawEntropyMap(depth);
-    setupScrollSync(depth);
+      .selectAll(".node-group")
+      .data(nodesData)
+      .enter()
+      .append("g")
+      .attr("class", "node-group")
+      .attr("id", (d) => `node-group-${d.id}`)
+      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
+      .style("opacity", 0.95)
+      .on("mouseover", mouseoverGroupNode)
+      .on("mousemove", mousemoveGroupNode)
+      .on("mouseleave", mouseleaveGroupNode)
+      .on("click", function (event, d) {
+        const nodeId = d.id;
+        const depth = computeRelativeMaxDepth(nodeId);
+        tooltipGraph.style("opacity", 0);
+        graph.selectAll("*").remove();
+        constructDegrees(nodeId, depth);
+        buildSections(depth);
+        drawGraph(parseInt(nodeId), depth);
+        drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees)
   });
 
   nodeGroups
-  .append("circle")
-  .attr("r", (d) => d.r)
-  .attr("fill", (d) => d.fill);
+      .append("circle")
+      .attr("r", (d) => d.r)
+      .attr("fill", (d) => d.fill);
 
   // Forces for nodes
   initializeSimulation(nodesData);
@@ -425,6 +551,7 @@ function constructDegrees(nodeId, depth) {
       degrees[degree].push(i);
     }
   }
+  return degrees;
 }
 
 // Draw graph
@@ -456,16 +583,23 @@ function drawGraph(nodeId, depth) {
     let topY = i * heightDegree + sectionBB.y;
     let bottomY = i * heightDegree + sectionBB.y + sectionBB.height;
 
-    let randomX = d3.randomUniform(leftX, rightX);
-    let randomY = d3.randomUniform(topY, bottomY);
+    /*let seed = 12345;
+    let pseudoRandomGenerator = d3.randomLcg(seed);
+    let randomX = d3.randomUniform.source(pseudoRandomGenerator)(leftX, rightX);
+    let randomY = d3.randomUniform.source(pseudoRandomGenerator)(topY, bottomY);*/
+
+    let randomX = widthGraph / 2;
+    let randomY = heightDegree / 2;
 
     let nodesCurrent = degrees[i];
     for (let j = 0; j < nodesCurrent.length; j++) {
       let nodeCurrentId = nodesCurrent[j];
       let rCurrent = radiusScale(nodes[nodeCurrentId]["count"]);
       let circle = {
-        x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX(),
-        y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY(),
+        //x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX(),
+        //y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY(),
+        x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX,
+        y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY,
         r: rCurrent,
         fill: colorNode,
         node: nodes[nodeCurrentId],
@@ -498,11 +632,10 @@ function drawDataItemView() {
 
   const depth = computeRelativeMaxDepth(nodeMaxId);
 
-  constructDegrees(nodeMaxId, depth);
+  degrees = constructDegrees(nodeMaxId, depth);
   buildSections(depth);
   drawGraph(nodeMaxId, depth);
-  drawEntropyMap(depth);
-  setupScrollSync(depth);
+  drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees);
 }
 
 
@@ -517,6 +650,6 @@ d3.json("/extract_graph").then((data) => {
       return accumulator;
     }, {});
   console.log(attributesOrder.length);
-  graphSVG.attr("height",  1.2 * (attributesOrder.length + 2) * heightDegree);
+  graphSVG.attr("height", (attributesOrder.length + 1) * heightDegree + 0.9 * heightGraph);
   drawDataItemView();
 });

@@ -12,7 +12,7 @@ let heightQuestion = 0.08 * heightBeeswarm;
 let radiusBeeswarm = 4;
 let colorBeeswarm = "#f4a582";
 
-let numberQuestions, questions, attributesChecked, answers;
+let numberQuestions, questions, attributesChecked, answers, attributesOrderBeeswarm;
 let optionsUnchecked = {};
 
 let beeswarmSVG = d3.select("#attribute-overview").append("svg")
@@ -22,11 +22,13 @@ let beeswarmSVG = d3.select("#attribute-overview").append("svg")
 let overviewAttributeHeader = beeswarmSVG.append("g")
                                            .attr("width", widthBeeswarm)
                                            .attr("height", heightAttributeOverviewHeader)
-                                           .attr("transform", `translate(0, ${0.05 * heightBeeswarm})`);
+                                           .attr("transform", `translate(0, ${0.02 * heightBeeswarm})`);
 
 overviewAttributeHeader.append("text")
                        .attr("class", "view-label")
                        .text("Attribute Overview");
+
+appendTooltipHint(overviewAttributeHeader, 155, -rQuestionMark, hintsObject["attributeOverview"]);
 
 let textsAttributeOverview = ["Check selection boxes below to include attributes and attribute categories in Item Relation Overview to the right.",
                               "Drag attribute categories to the same region (separated by dashed lines) to merge these categories."];
@@ -44,12 +46,12 @@ for (let i = 0; i < textsAttributeOverview.length; i++) {
 let overviewAttributeLabels = beeswarmSVG.append("g")
                                            .attr("width", widthBeeswarm)
                                            .attr("height", heightAttributeOverviewHeader)
-                                           .attr("transform", `translate(0, ${0.16 * heightBeeswarm})`);
+                                           .attr("transform", `translate(0, ${0.125 * heightBeeswarm})`);
 
-let labelsAttributeOverview = ["Attribute and Attribute Level Counts", "Missing %", "Attribute Strength"];
+let labelsAttributeOverview = ["Attribute and Attribute Level Counts", "Missing %", "Strength"];
 let labelsAttributeOverviewX = [0,
                                 0.65 * widthBeeswarm,
-                                0.78 * widthBeeswarm];
+                                0.8 * widthBeeswarm];
 
 for (let i = 0; i < labelsAttributeOverview.length; i++) {
     overviewAttributeLabels.append("text")
@@ -59,10 +61,15 @@ for (let i = 0; i < labelsAttributeOverview.length; i++) {
                        .text(labelsAttributeOverview[i]);
 }
 
+appendTooltipHint(overviewAttributeLabels, 255, -rQuestionMark, hintsObject["attributeCounts"]);
+appendTooltipHint(overviewAttributeLabels, 525, -rQuestionMark, hintsObject["missing"]);
+appendTooltipHint(overviewAttributeLabels, 615, -rQuestionMark, hintsObject["strength"]);
+
 
 let overviewAttribute = beeswarmSVG.append("g")
+                                   .attr("class", "scrollable")
                                    .attr("width", widthBeeswarm)
-                                   .attr("transform", `translate(0, ${0.2 * heightBeeswarm})`);
+                                   .attr("transform", `translate(0, ${0.17 * heightBeeswarm})`);
 
 const yCenter = heightQuestion / 2;
 
@@ -150,7 +157,9 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({'attributes': Array.from(attributesChecked)}),
+                body: JSON.stringify({'attributes': Array.from(attributesChecked),
+                                      'attribute_description': questions,
+                                      'missingness': degreeMissingness}),
             })
             .then(response => response.json())
             .then(data => {
@@ -167,7 +176,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             .attr("y", yCenter)
             .attr("dy", ".35em")
             .attr("dx", ".25em")
-            .attr("class", "question-label")
+            .attr("class", "annotation-level-2")
             .text(questionId);
 
     // append option check boxes
@@ -205,7 +214,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
 }
 
 function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
-    const top = (number - 1) * (0.1 * heightBeeswarm + heightQuestion);
+    const top = (number - 1) * (0.075 * heightBeeswarm + heightQuestion);
     const left = 0.07 * widthBeeswarm;
     const categoryWidth = widthQuestion / categories.length;
     let question = overviewAttribute.append("g")
@@ -334,6 +343,8 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
     const drag = d3.drag()
         .on("drag", function(event, d) {
+            if (!attributesChecked.has(questionId)) return;
+            //if (d.category in optionsUnchecked) return;
             const newX = Math.max(questionLeft, Math.min(questionRight, event.x));
             tickPositions.set(d, newX);
             d3.select(this)
@@ -345,9 +356,11 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             // Optimize!
             let i = categories.indexOf(d);
             let checkbox = d3.select(`#tick-${questionId}-${i}`);
-            checkbox.attr("x", newX - 0.035 * widthQuestion);
+            checkbox.attr("x", newX - 0.022 * widthQuestion);
         })
         .on("end", function(event, d) {
+            if (!attributesChecked.has(questionId)) return;
+            //if (d.category in optionsUnchecked) return;
             const newX = event.x;
             const proportion = (newX - questionLeft) / widthQuestion;
             const categoryRange = d3.max(categories) - d3.min(categories);
@@ -357,7 +370,9 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({'attribute_description': questions})
+                body: JSON.stringify({'attributes': Array.from(attributesChecked),
+                                      'attribute_description': questions,
+                                      'missingness': degreeMissingness})
             })
             .then(response => response.json())
             .then(data => {
@@ -375,9 +390,9 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
     // Add strength selectors
     question.append("foreignObject")
-        .attr("x", left + 1.37 * widthQuestion)
+        .attr("x", left + 1.38 * widthQuestion)
         .attr("y", 0.3 * heightQuestion)
-        .attr("width", 0.125 * widthQuestion)
+        .attr("width", 0.135 * widthQuestion)
         .attr("height", 0.4 * heightQuestion)
         .attr("id", `strength-${questionId}`)
         .append("xhtml:body")
@@ -396,17 +411,8 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
 let categoriesMap = {};
 
-d3.json("/attributes_items").then(data => {
-    questions = data.attributes;
-    answers = data.items;
-    let groupings = data.groupings;
-    attributesChecked = new Set(Object.keys(questions));
-    console.log(questions);
 
-    const heightAttributeOverview = (Object.keys(questions).length + 1) * (heightQuestion + 0.05 * heightBeeswarm)
-    const heightBeeswarmSVG = heightAttributeOverviewHeader + heightAttributeOverviewLabels + heightAttributeOverview;
-    beeswarmSVG.attr("height", heightBeeswarmSVG);
-
+function createAttributeView(){
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
     let individualMissingCounts = new Array(numberOfIndividuals).fill(0);
     let totalAttributes = Object.keys(answers).length;
@@ -420,7 +426,7 @@ d3.json("/attributes_items").then(data => {
     }
 
     number = 1;
-    for (const key of data.attributesOrder) {
+    for (const key of attributesOrderBeeswarm) {
         const value = questions[key];
         categoriesMap[key] = value.options.reduce((acc, curr) => { acc[curr] = curr; return acc; }, {});
         let answersObjects = answers[key].map((d, index) => ({ category: d,
@@ -430,4 +436,19 @@ d3.json("/attributes_items").then(data => {
         createQuestionBeeswarm(options, answersObjects, number, key);
         number++;
     }
+}
+
+
+
+d3.json("/attributes_items").then(data => {
+    questions = data.attributes;
+    attributesChecked = new Set(Object.keys(questions));
+    attributesOrderBeeswarm = data.attributesOrder;
+    answers = data.items;
+
+    const heightAttributeOverview = (Object.keys(questions).length) * (heightQuestion + 0.047 * heightBeeswarm)
+    const heightBeeswarmSVG = heightAttributeOverviewHeader + heightAttributeOverviewLabels + heightAttributeOverview;
+    beeswarmSVG.attr("height", heightBeeswarmSVG);
+
+    createAttributeView();
 });

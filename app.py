@@ -1,7 +1,8 @@
 import pandas as pd
 import json
+import numpy as np
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from flask import Flask, render_template, jsonify, request
 from typing import Optional
 
@@ -13,15 +14,67 @@ FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
 FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
 
 #IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
-DF = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
-DF = DF.fillna('')
-COLUMNS = [column for column in DF.columns if column not in ['id', 'ID', 'Age']]
+DF_ORIGINAL = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
+rows_with_missing = DF_ORIGINAL.fillna(np.nan).isnull().any(axis=1)
+DF_WITHOUT_MISSING = DF_ORIGINAL[~rows_with_missing]
+DF_WITH_MISSING = DF_ORIGINAL[rows_with_missing]
+
+COLUMNS = [column for column in DF_WITHOUT_MISSING.columns if column not in ['id', 'ID', 'Age', 'count']]
+
+with open(FILE_QUESTIONS) as f:
+    ATTRIBUTES_DESCRIPTION = json.load(f)
 
 #ID_COLUMN = 'id'
 #DF.rename({ID_COLUMN: 'id'}, inplace=True)
 
-with open(FILE_QUESTIONS) as f:
-    ATTRIBUTES_DESCRIPTION = json.load(f)
+
+def calculate_missingness(df: pd.DataFrame, attributes: dict) -> pd.DataFrame:
+    columns = list(attributes.keys())
+    df = df.fillna('').groupby(columns)['id'].apply(list).reset_index(name='ids')
+    df['count'] = df['ids'].apply(len)
+    missingness = (df[columns] == '').sum(axis=1) / len(columns)
+    df['missingness'] = missingness
+    return df
+
+
+def consider_all_categories(row: pd.Series, attribute: str, attributes: dict) -> list:
+    rows = []
+    categories = attributes[attribute]["options"]
+    for category in categories:
+        row[attribute] = str(category)
+        rows.append(row.copy())
+    return rows
+
+
+def calculate_probable_nodes_per_row(row_missing: pd.Series, attributes: dict) -> tuple:
+    rows_probable = deque([row_missing])
+    attributes_missing = [attribute for attribute in attributes.keys() if row_missing[attribute] == '']
+    probability_accumulated = 1
+    for attribute in attributes_missing:
+        n = len(rows_probable)
+        for i in range(n):
+            row = rows_probable.popleft()
+            rows = consider_all_categories(row, attribute, attributes)
+            rows_probable.extend(rows)
+        probability_accumulated *= 1 / len(attributes[attribute]['options'])
+    df = pd.DataFrame(rows_probable)
+    df['missing_attributes'] = [attributes_missing] * len(df)
+    return df, probability_accumulated
+
+
+def calculate_probable_nodes(df: pd.DataFrame, attributes: dict) -> pd.DataFrame:
+    df = calculate_missingness(df, attributes)
+    dfs_probable = []
+    for i, row in df.iterrows():
+        df, probability = calculate_probable_nodes_per_row(row, attributes)
+        df["probability"] = probability
+        dfs_probable.append(df)
+    df_probable = pd.concat(dfs_probable, axis=0)
+    return df_probable
+
+
+DF_PROBABLE = calculate_probable_nodes(DF_WITH_MISSING, ATTRIBUTES_DESCRIPTION)
+
 
 app = Flask(__name__)
 
@@ -31,10 +84,10 @@ def index():
     return render_template('index.html')
 
 
-def calculate_nodes(columns) -> dict:
-    df = DF.groupby(columns)['id'].apply(list).reset_index(name='ids')
+def calculate_nodes(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    df = df.groupby(columns)['id'].apply(list).reset_index(name='ids')
     df['count'] = df['ids'].apply(len)
-    return df.to_dict(orient='index')
+    return df
 
 
 def get_differences(values1: list, values2: list, attributes: list, attribute_description: dict) -> list:
@@ -61,14 +114,13 @@ def check_grouping(question1: str, question2: str) -> Optional[str]:
     return None
 
 
-def calculate_graph(nodes: dict, attribute_description: dict) -> tuple:
+def calculate_graph(nodes: dict, attributes: list, attribute_description: dict) -> tuple:
     """
         Function for calculating a graph. Returns the graph's edges
         and its nodes grouped based on the belonging to the same question group.
     """
     n, edges = len(nodes), defaultdict(dict)
     groupings = defaultdict(dict)
-    attributes = [a for a in nodes[0].keys() if a not in ['ids', 'count']]
 
     for i in range(n):
         values1 = [nodes[i][a] for a in attributes]
@@ -87,8 +139,8 @@ def calculate_graph(nodes: dict, attribute_description: dict) -> tuple:
 
 @app.route('/extract_graph')
 def extract_graph():
-    nodes = calculate_nodes(COLUMNS)
-    edges, groupings = calculate_graph(nodes, ATTRIBUTES_DESCRIPTION)
+    nodes = calculate_nodes(DF_WITHOUT_MISSING, COLUMNS).to_dict(orient='index')
+    edges, groupings = calculate_graph(nodes, COLUMNS, ATTRIBUTES_DESCRIPTION)
     return jsonify({'name': DATASET_NAME,
                     'nodes': nodes,
                     'edges': edges,
@@ -96,23 +148,56 @@ def extract_graph():
                     'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})
 
 
+def build_info(row):
+    return {
+        'missingness': row['missingness'],
+        'probability': row['probability'],
+        'missing_attributes': row['missing_attributes'],
+        'ids': row['ids']
+    }
+
 @app.route('/recalculate_graph', methods=['POST'])
 def recalculate_graph():
     data = request.get_json()
-    if 'attributes' in data:
-        attributes = data.get('attributes')
-        nodes = calculate_nodes(attributes)
-        edges, groupings = calculate_graph(nodes, ATTRIBUTES_DESCRIPTION)
-    elif 'attribute_description' in data:
-        attribute_description = data.get('attribute_description')
-        nodes = calculate_nodes(COLUMNS)
-        edges, groupings = calculate_graph(nodes, attribute_description)
+    attributes = data.get('attributes') if 'attributes' in data else COLUMNS
+    attribute_description = data.get('attribute_description') if 'attribute_description' in data else ATTRIBUTES_DESCRIPTION
+
+    df = calculate_nodes(DF_WITHOUT_MISSING, attributes)
+    if 'missingness' in data and data.get('missingness') > 0:
+        missingness = data.get('missingness')
+        df['missingness'] = 0
+        df['probability'] = 1
+        df['missing_attributes'] = ''
+        attributes_probable = attributes + ['missingness', 'probability', 'missing_attributes', 'ids', 'count']
+        df_probable = DF_PROBABLE[DF_PROBABLE['missingness'] <= missingness][attributes_probable]
+        df = pd.concat([df, df_probable])
+        df['grouped_info'] = df.apply(build_info, axis=1)
+        df = df.groupby(attributes).agg(grouped_info=('grouped_info', list), count=('count', 'sum')).reset_index()
+
+    nodes = df.to_dict(orient='index')
+    edges, groupings = calculate_graph(nodes, attributes, attribute_description)
     return jsonify({'nodes': nodes, 'edges': edges, 'groupings': groupings})
+
+
+@app.route('/extract_probable_nodes', methods=['POST'])
+def extract_probable_nodes():
+    data = request.get_json()
+    missingness = data.get('missingness')
+    df = DF_PROBABLE[DF_PROBABLE['missingness'] <= missingness]
+    return jsonify({'nodesProbable': df.reset_index(drop=True).to_dict(orient='index')})
+
+
+@app.route('/attributes_items_with_missing', methods=['POST'])
+def extract_attributes_items_with_missing():
+    df_dict = DF_WITHOUT_MISSING.to_dict(orient='list')
+    return jsonify({'attributes': ATTRIBUTES_DESCRIPTION,
+                    'items': df_dict,
+                    'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})
 
 
 @app.route('/attributes_items')
 def extract_attributes_items():
-    df_dict = DF.to_dict(orient='list')
+    df_dict = DF_WITHOUT_MISSING.to_dict(orient='list')
     return jsonify({'attributes': ATTRIBUTES_DESCRIPTION,
                     'items': df_dict,
                     'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})
