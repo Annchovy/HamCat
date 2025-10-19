@@ -15,11 +15,21 @@ FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
 
 #IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
 DF_ORIGINAL = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
-rows_with_missing = DF_ORIGINAL.fillna(np.nan).isnull().any(axis=1)
-DF_WITHOUT_MISSING = DF_ORIGINAL[~rows_with_missing]
-DF_WITH_MISSING = DF_ORIGINAL[rows_with_missing]
+#ID_ORIGINAL = 'id'
+#DF_ORIGINAL.rename(columns={ID_ORIGINAL: 'id_original'}, inplace=True)
+COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count']]
 
-COLUMNS = [column for column in DF_WITHOUT_MISSING.columns if column not in ['id', 'ID', 'Age', 'count']]
+
+def split_dataset(df: pd.DataFrame, columns: list) -> tuple:
+    rows_with_missing = df.fillna(np.nan).isnull().any(axis=1)
+    df_with_missing, df_without_missing = df[rows_with_missing], df[~rows_with_missing]
+    df_with_missing = df_with_missing.fillna('')
+    missingness = (df_with_missing[columns] == '').sum(axis=1) / len(columns)
+    df_with_missing['missingness'] = missingness
+    return df_with_missing, df_without_missing
+
+
+DF_WITH_MISSING, DF_WITHOUT_MISSING = split_dataset(DF_ORIGINAL, COLUMNS)
 
 with open(FILE_QUESTIONS) as f:
     ATTRIBUTES_DESCRIPTION = json.load(f)
@@ -189,10 +199,13 @@ def extract_probable_nodes():
 
 @app.route('/attributes_items_with_missing', methods=['POST'])
 def extract_attributes_items_with_missing():
-    df_dict = DF_WITHOUT_MISSING.to_dict(orient='list')
-    return jsonify({'attributes': ATTRIBUTES_DESCRIPTION,
-                    'items': df_dict,
-                    'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})
+    data = request.get_json()
+    missingness = data.get('missingness')
+    df_with_missing = DF_WITH_MISSING[DF_WITH_MISSING['missingness'] <= missingness]
+    df_with_missing = df_with_missing.drop(['missingness'], axis=1)
+    df = pd.concat([DF_WITHOUT_MISSING, df_with_missing]).reset_index()
+    df_dict = df.to_dict(orient='list')
+    return jsonify({'items': df_dict})
 
 
 @app.route('/attributes_items')

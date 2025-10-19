@@ -11,6 +11,10 @@ let heightQuestion = 0.08 * heightBeeswarm;
 
 let radiusBeeswarm = 4;
 let colorBeeswarm = "#f4a582";
+const arcGenerator = d3.arc()
+                    .innerRadius(0)
+                    .outerRadius(radiusBeeswarm);
+let simulations = {};
 
 let numberQuestions, questions, attributesChecked, answers, attributesOrderBeeswarm;
 let optionsUnchecked = {};
@@ -218,6 +222,8 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
     const left = 0.07 * widthBeeswarm;
     const categoryWidth = widthQuestion / categories.length;
     let question = overviewAttribute.append("g")
+                                    .attr("id", `question-section-${questionId}`)
+                                    .attr("class", "question-section")
                                     .attr("width", widthQuestion)
                                     .attr("height", heightQuestion)
                                     .attr("transform",  "translate(0," + top + ")");
@@ -251,12 +257,14 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
     let tickPositions = new Map(categories.map(d => [d, xScale(d)]));
 
-    let simulation = d3.forceSimulation(withCategory)
+    let simulationBeeswarm = d3.forceSimulation(withCategory)
                       .force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3))
                       .force("y", d3.forceY(yCenter).strength(0.05))
                       .force("collide", d3.forceCollide(1.1 * radiusBeeswarm))
                       .alphaDecay(0.01)
                       .on("tick", ticked);
+
+    simulations[questionId] = simulationBeeswarm;
 
     const xAxis = question.append('line')
                           .attr("x1", questionLeft)
@@ -308,9 +316,17 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                             .text(d => d)
                             .style("fill", "black");
 
-    const arcGenerator = d3.arc()
-                        .innerRadius(0)
-                        .outerRadius(radiusBeeswarm);
+    let ticks = question.selectAll(".tick-line")
+                  .data(categories)
+                  .join("line")
+                  .attr("class", "tick-line")
+                  .attr("x1", d => tickPositions.get(d))
+                  .attr("x2", d => tickPositions.get(d))
+                  .attr("y1", 0.2 * heightQuestion)
+                  .attr("y2", 0.8 * heightQuestion)
+                  .style("stroke-width", 1.5)
+                  .style('stroke', 'grey')
+                  .style("pointer-events", "all");
 
     let circles = question.selectAll(".circ")
                         .data(withCategory)
@@ -323,23 +339,12 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                             const completeness = d.value ?? 1;
                             const endAngle = completeness * 2 * Math.PI;
                             return arcGenerator({ startAngle: 0, endAngle: endAngle });
-                        });
+                        })
+                        .style("pointer-events", "none");
 
     function ticked() {
-      circles.attr("transform", d => `translate(${d.x}, ${d.y})`);
+      question.selectAll(".circ").attr("transform", d => `translate(${d.x}, ${d.y})`);
     }
-
-    let ticks = question.selectAll(".tick-line")
-                      .data(categories)
-                      .join("line")
-                      .attr("class", "tick-line")
-                      .attr("x1", d => tickPositions.get(d))
-                      .attr("x2", d => tickPositions.get(d))
-                      .attr("y1", 0.2 * heightQuestion)
-                      .attr("y2", 0.8 * heightQuestion)
-                      .style("stroke-width", 1.5)
-                      .style('stroke', 'grey')
-                      .style("pointer-events", "all");
 
     const drag = d3.drag()
         .on("drag", function(event, d) {
@@ -350,8 +355,8 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             d3.select(this)
               .attr("x1", newX)
               .attr("x2", newX);
-            simulation.force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3));
-            simulation.alpha(0.5).restart();
+            simulationBeeswarm.force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3));
+            simulationBeeswarm.alpha(0.5).restart();
             tickLabels.attr("x", d => tickPositions.get(d));
             // Optimize!
             let i = categories.indexOf(d);
@@ -411,6 +416,49 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
 let categoriesMap = {};
 
+function updateAttributeView(){
+    const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
+    let individualMissingCounts = new Array(numberOfIndividuals).fill(0);
+    let totalAttributes = Object.keys(answers).length;
+
+    for (let question of Object.keys(answers)) {
+        answers[question].forEach((value, index) => {
+            if (value === null || value === "") {
+                individualMissingCounts[index]++;
+            }
+        });
+    }
+
+    for (const questionId of attributesOrderBeeswarm){
+        let answersObjects = answers[questionId].map((d, index) => ({ category: d,
+                                                       value: 1 - individualMissingCounts[index] / totalAttributes,
+                                                       id: answers['id'][index] }));
+        answersObjects = answersObjects.filter(d => d.category !== "");
+
+        let simulationBeeswarm = simulations[questionId];
+        let question = d3.select(`#question-section-${questionId}`);
+        question.selectAll(".circ").remove();
+        question.selectAll(".circ")
+                        .data(answersObjects)
+                        .enter()
+                        .append("path")
+                        .attr("class", "circ")
+                        .attr("id", d => `${questionId}-${d.id}`)
+                        .attr("fill", colorBeeswarm)
+                        .attr("d", d => {
+                            const completeness = d.value ?? 1;
+                            const endAngle = completeness * 2 * Math.PI;
+                            return arcGenerator({ startAngle: 0, endAngle: endAngle });
+                        })
+                        .style("pointer-events", "none");
+        simulationBeeswarm.nodes(answersObjects);
+                // If you have links, update them too:
+                // simulation.force("link").links(newLinkArray);
+
+                // 2. Restart the simulation with new energy
+        simulationBeeswarm.alpha(1).restart();
+    }
+}
 
 function createAttributeView(){
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
@@ -431,13 +479,12 @@ function createAttributeView(){
         categoriesMap[key] = value.options.reduce((acc, curr) => { acc[curr] = curr; return acc; }, {});
         let answersObjects = answers[key].map((d, index) => ({ category: d,
                                                                value: 1 - individualMissingCounts[index] / totalAttributes,
-                                                               id: answers['id'][index]}));
-        let options = value.options.map(d => d.toString())
+                                                               id: answers['id'][index] }));
+        let options = value.options.map(d => d.toString());
         createQuestionBeeswarm(options, answersObjects, number, key);
         number++;
     }
 }
-
 
 
 d3.json("/attributes_items").then(data => {

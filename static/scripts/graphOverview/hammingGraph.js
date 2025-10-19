@@ -29,6 +29,8 @@ let radiusInner = 5;
 // Define node and datapoint colors
 const colorNode = "#6495ED50",
   colorDatapoint = "#1a237e";
+
+const pinkDark = "rgb(181, 9, 101)";
   
 const colorLinksHD1 = "#ADD8E640",
   colorLinksSameGroup = "#FFB6C140";
@@ -137,6 +139,18 @@ function buildSections(depth) {
 }
 
 
+let clickItemNode = function (event, d) {
+  event.stopPropagation();
+  let itemNodes = d3.selectAll(`.data-item-${d.id}`);
+  let currentStroke = itemNodes.style("stroke");
+  if (currentStroke === pinkDark) {
+    itemNodes.style("stroke", null);
+  } else {
+    itemNodes.style("stroke", pinkDark).style("opacity", 1);
+  }
+};
+
+
 function drawInnerCirclesPerNode(circlesInnerData, nodeGroup) {
   const simulationCircle = d3
     .forceSimulation(circlesInnerData)
@@ -184,14 +198,15 @@ function drawInnerCirclesPerNode(circlesInnerData, nodeGroup) {
         .data(circlesInnerData)
         .enter()
         .append("path")
-        .attr("class", "inner-circle")
+        .attr("class", d => `inner-circle data-item-${d.id}`)
         .attr("transform", d => `translate(${d.x}, ${d.y})`)
         .attr("d", d => arcGenerator(d))
         .style("fill", colorDatapoint)
         .style("fill-opacity", d => opacityScale(d.probability))
         .on("mouseover", mouseoverItemNode)
         .on("mousemove", mousemoveItemNode)
-        .on("mouseleave", mouseleaveItemNode);
+        .on("mouseleave", mouseleaveItemNode)
+        .on("click", clickItemNode);
 }
 
 function drawInnerCircles(nodesData) {
@@ -402,9 +417,10 @@ function hammingForce(strength = 0.1) {
           const nx = dx / distance;
           const ny = dy / distance;
 
-          if (hd === 1) {
-            forceStrength = strength * distance;
-          } else if (hd > 1) {
+          if (hd === 0){
+            forceStrength = distance <= (nodeA.r + nodeB.r + 2) ? 0 : strength * distance;
+          }
+          else {
             forceStrength = -(hd * strength / distance);
           }
 

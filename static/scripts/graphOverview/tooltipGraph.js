@@ -1,3 +1,5 @@
+const pinkLight = "#c74e8f";
+
 let tooltipGraph = d3
   .select("#hamming-graph")
   .append("div")
@@ -29,16 +31,18 @@ let mousemoveGroupNode = function (event, d) {
 };
 
 let mouseleaveGroupNode = function (event, d) {
-    event.stopPropagation();
     tooltipGraph.style("opacity", 0);
-    d3.select(this).style("stroke", "none").style("opacity", 0.95);
+    d3.select(this).style("stroke", null).style("opacity", 0.95);
 };
-
 
 let mouseoverItemNode = function (event, d) {
   event.stopPropagation();
   tooltipGraph.style("opacity", 1);
-  d3.select(this).style("stroke", "black").style("opacity", 1);
+  let itemNodes = d3.selectAll(`.data-item-${d.id}`);
+  let currentStroke = itemNodes.style("stroke");
+  if (currentStroke !== pinkDark) {
+    itemNodes.style("stroke", pinkLight).style("opacity", 1);
+  }
 };
 
 let mousemoveItemNode = function (event, d) {
@@ -65,7 +69,11 @@ let mousemoveItemNode = function (event, d) {
 };
 
 let mouseleaveItemNode = function (event, d) {
-    event.stopPropagation();
     tooltipGraph.style("opacity", 0);
-    d3.select(this).style("stroke", none).style("opacity", 0.95);
+    let itemNodes = d3.selectAll(`.data-item-${d.id}`);
+    let currentStroke = itemNodes.style("stroke");
+    if (currentStroke !== pinkDark) {
+        itemNodes.style("stroke", null).style("opacity", 0.95);
+    }
+    //d3.select(this).style("stroke", none).style("opacity", 0.95);
 };

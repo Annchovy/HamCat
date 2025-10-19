@@ -83,10 +83,18 @@ const drag = d3.drag()
                 drawDataItemView();
             })
             .catch((error) => { console.error('Error:', error); });
-
-    createAttributeView()
-  })
-  ;
+    fetch('/attributes_items_with_missing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({'missingness': degreeMissingness})
+            })
+            .then(response => response.json())
+            .then(data => {
+                answers = data.items;
+                updateAttributeView();
+            })
+            .catch((error) => { console.error('Error:', error); });
+  });
 
 handle.call(drag);
 
