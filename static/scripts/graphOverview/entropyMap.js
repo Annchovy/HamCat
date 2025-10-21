@@ -32,8 +32,6 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
     d3.select("#entropy-map-container").selectAll("*").remove();
 
     const sectionWidth = entropyMapWidth / (depth + 1);
-    const entropyColor = d3.scaleLinear().domain([0, 1]).range(["#ffffff", "#00008B"]);
-
     const maxInnerCircles = d3.max(Object.keys(degrees), d =>
         degrees[d].reduce((sum, nodeId) => sum + nodes[nodeId].count, 0)
     );
@@ -52,13 +50,24 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
                          .domain([0, maxInnerCircles])
                          .range([0, 0.5 * entropyMapHeight]);
 
+    let entropies = {};
+
+    for (let i = 0; i <= depth; i++) {
+        const nodeIds = degrees[i];
+        const entropy = computeEntropy(nodeIds);
+        entropies[i] = entropy;
+    }
+
+    const maxEntropy = Math.max(...Object.values(entropies));
+    const entropyColor = d3.scaleLinear().domain([0, maxEntropy]).range(["#ffffff", "#00008b"]);
+
     for (let i = 0; i <= depth; i++) {
         const sectionX = i * sectionWidth;
 
         const nodeIds = degrees[i];
         const totalCount = nodeIds.reduce((sum, nodeId) => sum + nodes[nodeId].count, 0);
 
-        const entropy = computeEntropy(nodeIds);
+        const entropy = entropies[i];
         const color = entropyColor(entropy);
 
         const group = entropyMapBarchart.append("g").attr("transform", `translate(${sectionX}, 0)`);
@@ -82,7 +91,7 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
               .text(i);
     }
     entropyMap.append("text")
-              .attr("x", 0.46 * entropyMapWidth)
+              .attr("x", 0.5 * entropyMapWidth)
               .attr("y", 0.9 * entropyMapHeight)
               .attr("class", "annotation-level-3")
               .text("Hamming distance");
@@ -99,7 +108,7 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
 
     for (let i = 0; i < labels.length; i++) {
         entropyMap.append("text")
-                  .attr("x", 0.75 * entropyMapBarchartX)
+                  .attr("x", 0.55 * entropyMapBarchartX)
                   .attr("y", labelsY[i])
                   .attr("class", "annotation-level-3")
                   .style("font-weight", "normal")

@@ -18,6 +18,7 @@ let simulations = {};
 
 let numberQuestions, questions, attributesChecked, answers, attributesOrderBeeswarm;
 let optionsUnchecked = {};
+let nodesRemoved = {};
 
 let beeswarmSVG = d3.select("#attribute-overview").append("svg")
                                               .attr("width", widthBeeswarm)
@@ -167,10 +168,10 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             })
             .then(response => response.json())
             .then(data => {
-                graph.selectAll("*").remove();
                 nodes = data.nodes;
                 edges = data.edges;
                 drawDataItemView();
+                buildSliderGraph(attributesChecked.size + 1);
             })
             .catch((error) => { console.error('Error:', error); });
         })
@@ -211,7 +212,6 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
                     updateCirclesBasedOnOption(questionId, category, 0.3);
                     removeNodes(questionId, category);
                 }
-                graph.selectAll("*").remove();
                 drawDataItemView();
             });
     }
@@ -381,7 +381,6 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             })
             .then(response => response.json())
             .then(data => {
-                graph.selectAll("*").remove();
                 nodes = data.nodes;
                 edges = data.edges;
                 drawDataItemView();

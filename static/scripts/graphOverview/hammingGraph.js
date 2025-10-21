@@ -12,11 +12,12 @@ let heightDegree = 0.15 * heightGraph;
 
 let sectionBB = {
   x: 0.03 * widthGraph,
-  y: 0.05 * heightDegree,
+  y: 0.15 * heightDegree,
   width: 0.96 * widthGraph,
-  height: 0.9 * heightDegree,
+  height: 0,
 };
-let sectionHeights = [];
+
+let sectionsY;
 
 // Graph nodes, edges and attribute description
 let nodes, edges, groupings;
@@ -24,7 +25,8 @@ let attributesOrder, mapQuestions;
 
 // Define node and datapoint radius
 let radiusMin, radiusMax;
-let radiusInner = 5;
+const radiusInner = 5;
+const radiusThreshold = 4;
 
 // Define node and datapoint colors
 const colorNode = "#6495ED50",
@@ -34,6 +36,8 @@ const pinkDark = "rgb(181, 9, 101)";
   
 const colorLinksHD1 = "#ADD8E640",
   colorLinksSameGroup = "#FFB6C140";
+
+let binning = 1;
 
 let degrees;
 
@@ -45,7 +49,6 @@ let graphSVG = d3
   .select("#hamming-graph")
   .append("svg")
   .attr("width", widthGraphSVG);
-
 
 let overviewItemHeader = graphSVG.append("g")
                                .attr("width", widthGraph)
@@ -91,37 +94,73 @@ appendTooltipHint(graphSVG, 100, 0.125 * heightBeeswarm-rQuestionMark, hintsObje
 graphSVG.append("text")
         .attr("class", "annotation-level-1")
         .attr("x", 0)
-        .attr("y", 0.48 * heightGraph)
+        .attr("y", 0.47 * heightGraph)
         .text("Ego Hamming Graph");
 
-appendTooltipHint(graphSVG, 155, 0.465 * heightGraph, hintsObject["egoHammingGraph"]);
+appendTooltipHint(graphSVG, 152, 0.454 * heightGraph, hintsObject["egoHammingGraph"]);
 
 graphSVG.append("text")
         .attr("class", "annotation-level-2")
         .attr("x", 0)
-        .attr("y", 0.54 * heightGraph)
-        .text("Hamming distance");
+        .attr("y", 0.53 * heightGraph)
+        .text("Hamming distance bins");
 
 let graph = graphSVG.append("g")
                       .attr("width", widthGraph)
                       .attr("height", heightGraph)
                       .attr("transform", `translate(0, ${0.53 * heightGraph})`);
 
+const zoomX = d3.zoom()
+  .scaleExtent([1, 10])
+  .translateExtent([[0, 0], [widthGraphSVG, heightGraphSVG]])
+  .on("zoom", zoomed);
+
+//graphSVG.call(zoomX);
+
+function zoomed(event) {
+  const transform = event.transform;
+  graph.attr("transform", `translate(${transform.x}, ${0.53 * heightGraph}) scale(${transform.k}, 1)`);
+  handleZoomDetail(transform.k);
+}
+
+
+function adjustSectionHeight(nodesData) {
+  if (nodesData.length === 0) {
+    sectionBB.height = 0;
+    return;
+  }
+
+  let sectionHeight = Math.max(nodesData.length * 2 * radiusMax / (0.96 * widthGraph), 1) * 2 * radiusMax;
+
+  // additional multiplication by 2 to give the nodes the ability to cluster vertically
+  if (nodesData.length > 2) {
+    sectionHeight *= 1.5;
+  }
+  sectionBB.height = sectionHeight;
+  return;
+}
+
 
 // Find max separation degree and build sections
 function buildSections(depth) {
   let lines = [];
+  let heightCurrent = 0;
+  sectionsY = [heightCurrent];
 
   for (let i = 1; i <= depth + 1; i++) {
+    let nodesCurrent = degrees[i-1];
+    adjustSectionHeight(nodesCurrent);
+    heightCurrent += sectionBB.height + 2 * sectionBB.y;
+    sectionsY.push(heightCurrent);
     graph
       .append("text")
       .attr("class", "annotation-level-2")
       .attr("dy", "0.4em")
       .attr("x", 0)
-      .attr("y", (i - 0.5) * heightDegree)
+      .attr("y", heightCurrent - (sectionBB.height / 2 + sectionBB.y))
       .text(i - 1);
     let stroke = i == depth + 1 ? "black" : "lightgrey"
-    let line = { x1: 0, x2: widthGraph, y: i * heightDegree, stroke: stroke };
+    let line = { x1: 0, x2: widthGraph, y: heightCurrent, stroke: stroke };
     lines.push(line);
   }
 
@@ -263,7 +302,7 @@ function computeRelativeMaxDepth(nodeId) {
   return depthMax;
 }
 
-
+/*
 function calculateOrderInSection(nodeParent, nodesChildren) {
     let nodeDifferences = {};
     for (const nodeChild of nodesChildren) {
@@ -303,15 +342,16 @@ function calculateOrderInSection(nodeParent, nodesChildren) {
     }
     return nodeOrdering;
 }
+*/
 
-
+/*
 function getFirstNonEmptySection(depth) {
     for (let i = 1; i < depth; i++) {
         if (degrees[i].length > 0) {
             return i;
         }
     }
-}
+}*/
 
 function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
@@ -382,13 +422,13 @@ function applyQuestionBasedForceGraph(question, strength) {
         simulationGraph.force(`questionForce-${question}!`, null);
         questionForces.delete(question);
         if (questionForces.size == 0) {
-            simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
-            simulationGraph.force("hamming", hammingForce(5))
+            //simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
+            simulationGraph.force("hamming", hammingForce(2))
         }
     }
     else {
         questionForces.add(question);
-        simulationGraph.force('center', null);
+        //simulationGraph.force('center', null);
         simulationGraph.force('hamming', null);
         simulationGraph.force(`questionForce-${question}!`, questionForce(question, strength));
     }
@@ -452,7 +492,7 @@ function initializeSimulation(nodesData) {
     .force("collide", d3.forceCollide((d) => d.r + 1))
     /*.force("charge", d3.forceManyBody().strength((d) => -d.r))*/
     /*.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))*/
-    .force("coordinateY", d3.forceY((d) => (d.degree + 0.5) * heightDegree).strength(2))
+    .force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(2))
     .force("hamming", hammingForce(2))
     /*.force(
       "firstSectionForceLeft",
@@ -484,8 +524,8 @@ function initializeSimulation(nodesData) {
     )*/
     .on("tick", () => {
       nodesData.forEach((node) => {
-        let topY = node.degree * heightDegree + sectionBB.y;
-        let bottomY = node.degree * heightDegree + sectionBB.y + sectionBB.height;
+        let topY = sectionsY[node.degree] + sectionBB.y;
+        let bottomY = sectionsY[node.degree + 1] + sectionBB.y;
         node.x = Math.max(
           sectionBB.x,
           Math.min(sectionBB.x + sectionBB.width - node.r, node.x),
@@ -497,49 +537,72 @@ function initializeSimulation(nodesData) {
           .data(nodesData)
           .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
     })
-    .on("end", () => {
-      drawInnerCircles(nodesData);
+    /*.on("end", () => {
       //drawLinks(linksVertical, colorLinksHD1);
       //drawLinks(linksSameGroup, colorLinksSameGroup);
+    });*/
+}
+
+
+function drawCircles(nodesData, depth, nodeFocusId) {
+    nodesData.sort((a, b) => a.id - b.id);
+    //let degreeNonEmpty = getFirstNonEmptySection(depth);
+    //let nodesChildren = degrees[degreeNonEmpty];
+    //let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
+
+    initializeSimulation(nodesData);
+
+    simulationGraph.on("end", () => {
+        let nodesLarge = nodesData.filter(d => d.r > radiusThreshold);
+        const nodesSmall = nodesData.filter(d => d.r <= radiusThreshold);
+
+        const nodeGroups = graph
+          .selectAll(".node-group")
+          .data(nodesLarge)
+          .enter()
+          .append("g")
+          .attr("class", "node-group")
+          .attr("id", (d) => `node-group-${d.id}`)
+          .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
+          .style("opacity", 0.95)
+          .on("mouseover", mouseoverGroupNode)
+          .on("mousemove", mousemoveGroupNode)
+          .on("mouseleave", mouseleaveGroupNode)
+          .on("click", function (event, d) {
+            const nodeId = d.id;
+            const depth = computeRelativeMaxDepth(nodeId);
+            tooltipGraph.style("opacity", 0);
+            graph.selectAll("*").remove();
+            constructDegrees(nodeId, depth);
+            buildSections(depth);
+            drawGraph(parseInt(nodeId), depth);
+            drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees)
+        });
+
+        nodeGroups
+          .append("circle")
+          .attr("r", (d) => d.r)
+          .attr("fill", (d) => d.fill);
+
+        drawInnerCircles(nodesLarge);
     });
 }
 
-function drawCircles(nodesData, depth, nodeFocusId) {
-  nodesData.sort((a, b) => a.id - b.id);
-  //let degreeNonEmpty = getFirstNonEmptySection(depth);
-  //let nodesChildren = degrees[degreeNonEmpty];
-  //let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
 
-  const nodeGroups = graph
-      .selectAll(".node-group")
-      .data(nodesData)
-      .enter()
-      .append("g")
-      .attr("class", "node-group")
-      .attr("id", (d) => `node-group-${d.id}`)
-      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-      .style("opacity", 0.95)
-      .on("mouseover", mouseoverGroupNode)
-      .on("mousemove", mousemoveGroupNode)
-      .on("mouseleave", mouseleaveGroupNode)
-      .on("click", function (event, d) {
-        const nodeId = d.id;
-        const depth = computeRelativeMaxDepth(nodeId);
-        tooltipGraph.style("opacity", 0);
-        graph.selectAll("*").remove();
-        constructDegrees(nodeId, depth);
-        buildSections(depth);
-        drawGraph(parseInt(nodeId), depth);
-        drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees)
-  });
+let smallNodesVisible = false;
 
-  nodeGroups
-      .append("circle")
-      .attr("r", (d) => d.r)
-      .attr("fill", (d) => d.fill);
+function handleZoomDetail(scale) {
+  const zoomRevealThreshold = 2.5;
 
-  // Forces for nodes
-  initializeSimulation(nodesData);
+  if (scale > zoomRevealThreshold && !smallNodesVisible) {
+    drawVisibleNodes(smallNodes);
+    smallNodesVisible = true;
+  }
+
+  if (scale <= zoomRevealThreshold && smallNodesVisible) {
+    graph.selectAll(".small-node-group").remove();
+    smallNodesVisible = false;
+  }
 }
 
 function calculateOuterRadius(count, radius) {
@@ -557,13 +620,13 @@ function constructDegrees(nodeId, depth) {
   }
   for (let i = 0; i < nodeId; i++) {
     if (i in nodes) {
-      let degree = edges[i][nodeId].length;
+      let degree = Math.floor(edges[i][nodeId].length / binning);
       degrees[degree].push(i);
     }
   }
   for (let i = n; i > nodeId; i--) {
     if (i in nodes) {
-      let degree = edges[nodeId][i].length;
+      let degree = Math.floor(edges[nodeId][i].length / binning);
       degrees[degree].push(i);
     }
   }
@@ -572,8 +635,6 @@ function constructDegrees(nodeId, depth) {
 
 // Draw graph
 function drawGraph(nodeId, depth) {
-  radiusMin = calculateOuterRadius(numberRespondentsRange[0], radiusInner + 5);
-  radiusMax = calculateOuterRadius(numberRespondentsRange[1], radiusInner + 5);
 
   const radiusScale = d3
     .scaleLinear()
@@ -592,22 +653,24 @@ function drawGraph(nodeId, depth) {
 
   let nodesData = [];
 
-  let leftX = sectionBB.x;
-  let rightX = sectionBB.x + sectionBB.width;
+  //let leftX = sectionBB.x;
+  //let rightX = sectionBB.x + sectionBB.width;
 
   for (let i = 0; i <= depth; i++) {
-    let topY = i * heightDegree + sectionBB.y;
-    let bottomY = i * heightDegree + sectionBB.y + sectionBB.height;
+    //let topY = heightCurrent + sectionBB.y;
+    //let bottomY = heightCurrent + sectionBB.y + sectionBB.height;
 
     /*let seed = 12345;
     let pseudoRandomGenerator = d3.randomLcg(seed);
     let randomX = d3.randomUniform.source(pseudoRandomGenerator)(leftX, rightX);
     let randomY = d3.randomUniform.source(pseudoRandomGenerator)(topY, bottomY);*/
 
-    let randomX = widthGraph / 2;
-    let randomY = heightDegree / 2;
-
     let nodesCurrent = degrees[i];
+    adjustSectionHeight(nodesCurrent);
+
+    let randomX = widthGraph / 2;
+    let randomY = sectionBB.height / 2 + sectionBB.y;
+
     for (let j = 0; j < nodesCurrent.length; j++) {
       let nodeCurrentId = nodesCurrent[j];
       let rCurrent = radiusScale(nodes[nodeCurrentId]["count"]);
@@ -632,6 +695,7 @@ function drawGraph(nodeId, depth) {
 
 // Extract data and draw data item view
 function drawDataItemView() {
+  graph.selectAll("*").remove();
   const edgeArrays = Object.values(edges)
     .map((edge) => Object.values(edge))
     .flat();
@@ -646,14 +710,18 @@ function drawDataItemView() {
     numberRespondentsMax = Math.max(...counts);
   numberRespondentsRange = [numberRespondentsMin, numberRespondentsMax];
 
-  const depth = computeRelativeMaxDepth(nodeMaxId);
+  radiusMin = calculateOuterRadius(numberRespondentsRange[0], radiusInner + 5);
+  radiusMax = calculateOuterRadius(numberRespondentsRange[1], radiusInner + 5);
+
+  const depthRaw = computeRelativeMaxDepth(nodeMaxId);
+  const depth = Math.floor(depthRaw / binning);
 
   degrees = constructDegrees(nodeMaxId, depth);
   buildSections(depth);
   drawGraph(nodeMaxId, depth);
   drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees);
+  graphSVG.attr("height", sectionsY[sectionsY.length - 1] + 0.5 * heightBeeswarm);
 }
-
 
 d3.json("/extract_graph").then((data) => {
   d3.select("#dataset-name").text(data.name);
@@ -664,8 +732,7 @@ d3.json("/extract_graph").then((data) => {
   mapQuestions = attributesOrder.reduce((accumulator, value, index) => {
       accumulator[value] = index;
       return accumulator;
-    }, {});
-  console.log(attributesOrder.length);
-  graphSVG.attr("height", (attributesOrder.length + 1) * heightDegree + 0.9 * heightGraph);
+  }, {});
   drawDataItemView();
+  buildSliderGraph(attributesChecked.size + 1);
 });

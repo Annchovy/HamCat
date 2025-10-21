@@ -95,8 +95,14 @@ def index():
 
 
 def calculate_nodes(df: pd.DataFrame, columns: list) -> pd.DataFrame:
-    df = df.groupby(columns)['id'].apply(list).reset_index(name='ids')
-    df['count'] = df['ids'].apply(len)
+    if columns:
+        df = df.groupby(columns)['id'].apply(list).reset_index(name='ids')
+        df['count'] = df['ids'].apply(len)
+    else:
+        df = pd.DataFrame({
+            'ids': [df['id'].tolist()],
+            'count': [len(df)]
+        })
     return df
 
 
@@ -217,4 +223,4 @@ def extract_attributes_items():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

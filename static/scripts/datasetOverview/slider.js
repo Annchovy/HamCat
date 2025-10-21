@@ -77,7 +77,6 @@ const drag = d3.drag()
             })
             .then(response => response.json())
             .then(data => {
-                graph.selectAll("*").remove();
                 nodes = data.nodes;
                 edges = data.edges;
                 drawDataItemView();
