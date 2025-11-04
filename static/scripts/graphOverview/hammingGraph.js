@@ -357,23 +357,13 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
     let nodeMax = nodeA.id > nodeB.id ? nodeA.id : nodeB.id;
     let k;
+    let n = Object.keys(nodes).length;
 
     if (edges[nodeMin][nodeMax].includes(question)) {
-        let r = 1e-2;
-        let nodeCurrent = nodeA.degree > nodeB.degree ? nodeA : nodeB;
-        let height = sectionsY[nodeCurrent.degree + 1] - sectionsY[nodeCurrent.degree] - 2 * sectionBB.y;
-        k = r * Math.sqrt(sectionBB.width * height / degrees[nodeCurrent.degree].length);
+        k = 1e-3 / n;
         return -k * k * strength;
     }
-    if (nodeA.degree == nodeB.degree) {
-        let a = 1e5;
-        let height = sectionsY[nodeA.degree + 1] - sectionsY[nodeA.degree] - 2 * sectionBB.y;
-        k = a * Math.sqrt(sectionBB.width * height / degrees[nodeA.degree].length);
-    }
-    else {
-        let a = 1e5;
-        k = a * 0.1;
-    }
+    k = 1e7 / n;
     return strength / k;
 }
 
@@ -387,39 +377,25 @@ function questionForce(question, strength) {
           const nodeB = nodes[j];
 
           const dx = nodeA.x - nodeB.x;
-          const dy = nodeA.y - nodeB.y;
           let distSquare = dx * dx  || 1;
-          let dist = Math.sqrt(distSquare);
-          let restLength = widthGraph;
+          let dist = dx || 1;
 
           let forceStrength = defineQuestionForce(nodeA, nodeB, question, strength);
           let force;
 
-          //needs more work!!!!!
           if (forceStrength < 0) {
-            //force = dist > 0 ? forceStrength * alpha / distSquare : 0.1;
-            //force = dist > widthGraph / 2 ? 0 : force;
             force = forceStrength * alpha / dist;
-            //force = dist > widthGraph / 2 ? 0 : force;
+            console.log(force);
           }
           else {
             force = forceStrength * alpha * distSquare;
-            //force = dist > (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
+            console.log(force);
           }
 
           const fx = force * dx;
-          //const fy = force * dy;
 
-          if (nodeA.degree > nodeB.degree) {
-            nodeA.vx -= fx;
-          }
-          if (nodeB.degree > nodeA.degree) {
-            nodeB.vx += fx;
-          }
-          if (nodeA.degree == nodeB.degree) {
-            nodeA.vx -= fx;
-            nodeB.vx += fx;
-          }
+          nodeA.vx -= fx;
+          nodeB.vx += fx;
         }
     }
   }
