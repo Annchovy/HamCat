@@ -11,7 +11,7 @@ let heightGraph = 0.6 * heightGraphSVG;
 let heightDegree = 0.15 * heightGraph;
 
 let sectionBB = {
-  x: 0.03 * widthGraph,
+  x: 0.02 * widthGraph,
   y: 0.15 * heightDegree,
   width: 0.96 * widthGraph,
   height: 0,
@@ -41,8 +41,8 @@ let binning = 1;
 
 let degrees;
 
-let simulationGraph;
-let questionForces = new Set([]);
+let simulationGraph = undefined;
+let questionForces = {};
 let numberRespondentsRange;
 
 let graphSVG = d3
@@ -356,13 +356,25 @@ function getFirstNonEmptySection(depth) {
 function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
     let nodeMax = nodeA.id > nodeB.id ? nodeA.id : nodeB.id;
+    let k;
+
     if (edges[nodeMin][nodeMax].includes(question)) {
-        return -200 * strength;
+        let r = 1e-2;
+        let nodeCurrent = nodeA.degree > nodeB.degree ? nodeA : nodeB;
+        let height = sectionsY[nodeCurrent.degree + 1] - sectionsY[nodeCurrent.degree] - 2 * sectionBB.y;
+        k = r * Math.sqrt(sectionBB.width * height / degrees[nodeCurrent.degree].length);
+        return -k * k * strength;
     }
     if (nodeA.degree == nodeB.degree) {
-        return 100 * strength;
+        let a = 1e5;
+        let height = sectionsY[nodeA.degree + 1] - sectionsY[nodeA.degree] - 2 * sectionBB.y;
+        k = a * Math.sqrt(sectionBB.width * height / degrees[nodeA.degree].length);
     }
-    return 2000 * strength;
+    else {
+        let a = 1e5;
+        k = a * 0.1;
+    }
+    return strength / k;
 }
 
 function questionForce(question, strength) {
@@ -384,12 +396,15 @@ function questionForce(question, strength) {
           let force;
 
           //needs more work!!!!!
-          if (force < 0) {
-            force = dist > 0 ? forceStrength * alpha / distSquare : 0.1;
-            force = dist > widthGraph / 2 ? 0 : force;
+          if (forceStrength < 0) {
+            //force = dist > 0 ? forceStrength * alpha / distSquare : 0.1;
+            //force = dist > widthGraph / 2 ? 0 : force;
+            force = forceStrength * alpha / dist;
+            //force = dist > widthGraph / 2 ? 0 : force;
           }
           else {
-            force = dist > (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
+            force = forceStrength * alpha * distSquare;
+            //force = dist > (nodeA.r + nodeB.r) ? forceStrength * alpha / Math.pow(restLength - dist, 2) : 0;
           }
 
           const fx = force * dx;
@@ -418,19 +433,20 @@ function questionForce(question, strength) {
 
 
 function applyQuestionBasedForceGraph(question, strength) {
-    if (strength == 0) {
-        simulationGraph.force(`questionForce-${question}!`, null);
-        questionForces.delete(question);
-        if (questionForces.size == 0) {
+    if (strength === 0) {
+        simulationGraph.force(`questionForce-${question}`, null);
+        delete questionForces[`questionForce-${question}`];
+        if (Object.keys(questionForces).length === 0) {
             //simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
-            simulationGraph.force("hamming", hammingForce(2))
+            simulationGraph.force("hamming", hammingForce(10))
         }
     }
     else {
-        questionForces.add(question);
+        let questionForceCurrent = questionForce(question, strength);
+        questionForces[`questionForce-${question}`] = questionForceCurrent;
         //simulationGraph.force('center', null);
         simulationGraph.force('hamming', null);
-        simulationGraph.force(`questionForce-${question}!`, questionForce(question, strength));
+        simulationGraph.force(`questionForce-${question}`, questionForceCurrent);
     }
     simulationGraph.alpha(1).restart();
 }
@@ -482,17 +498,23 @@ function hammingForce(strength = 0.1) {
     return force;
 }
 
-function initializeSimulation(nodesData) {
+function initializeSimulation(nodesData, questionForces) {
     //let linksSameGroup = getLinksSameGroup(nodesData, groupings);
     let links = getLinksOneDegreeSeparation(nodesData);
     //let linksHorizontal = formatDataForLinks(links.horizontal, nodesData);
     let linksVertical = formatDataForLinks(links.vertical, nodesData);
+    simulationGraph = d3.forceSimulation(nodesData);
 
-    simulationGraph = d3.forceSimulation(nodesData)
-    .force("collide", d3.forceCollide((d) => d.r + 1))
+    if (Object.keys(questionForces).length > 0) {
+        for (const key of Object.keys(questionForces)) {
+            simulationGraph.force(key, questionForces[key]);
+        }
+    }
+
+    simulationGraph.force("collide", d3.forceCollide((d) => d.r + 1))
     /*.force("charge", d3.forceManyBody().strength((d) => -d.r))*/
     /*.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))*/
-    .force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(2))
+    .force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(1))
     .force("hamming", hammingForce(2))
     /*.force(
       "firstSectionForceLeft",
@@ -525,12 +547,11 @@ function initializeSimulation(nodesData) {
     .on("tick", () => {
       nodesData.forEach((node) => {
         let topY = sectionsY[node.degree] + sectionBB.y;
-        let bottomY = sectionsY[node.degree + 1] + sectionBB.y;
-        node.x = Math.max(
-          sectionBB.x,
-          Math.min(sectionBB.x + sectionBB.width - node.r, node.x),
-        );
-        node.y = Math.max(topY, Math.min(bottomY - node.r, node.y));
+        let bottomY = sectionsY[node.degree + 1] - sectionBB.y;
+        let leftX = sectionBB.x;
+        let rightX = sectionBB.x + sectionBB.width;
+        node.x = Math.max(leftX + node.r, Math.min(rightX - node.r, node.x));
+        node.y = Math.max(topY + node.r, Math.min(bottomY - node.r, node.y));
       });
       graph
           .selectAll(".node-group")
@@ -550,7 +571,7 @@ function drawCircles(nodesData, depth, nodeFocusId) {
     //let nodesChildren = degrees[degreeNonEmpty];
     //let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
 
-    initializeSimulation(nodesData);
+    initializeSimulation(nodesData, questionForces);
 
     simulationGraph.on("end", () => {
         let nodesLarge = nodesData.filter(d => d.r > radiusThreshold);

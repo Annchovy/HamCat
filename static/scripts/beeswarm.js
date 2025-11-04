@@ -67,8 +67,8 @@ for (let i = 0; i < labelsAttributeOverview.length; i++) {
 }
 
 appendTooltipHint(overviewAttributeLabels, 255, -rQuestionMark, hintsObject["attributeCounts"]);
-appendTooltipHint(overviewAttributeLabels, 525, -rQuestionMark, hintsObject["missing"]);
-appendTooltipHint(overviewAttributeLabels, 615, -rQuestionMark, hintsObject["strength"]);
+appendTooltipHint(overviewAttributeLabels, 0.69 * widthBeeswarm + 50, -rQuestionMark, hintsObject["missing"]);
+appendTooltipHint(overviewAttributeLabels, 0.83 * widthBeeswarm + 50, -rQuestionMark, hintsObject["strength"]);
 
 
 let overviewAttribute = beeswarmSVG.append("g")
@@ -107,7 +107,7 @@ function removeNodes(questionId, category) {
     }
 }
 
-function updateCirclesBasedOnOption(questionId, category, opacity) {
+function updateCirclesBasedOnOption(questionId, category, opacityStep) {
     let circleIds = [];
 
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
@@ -119,12 +119,18 @@ function updateCirclesBasedOnOption(questionId, category, opacity) {
         }
     }
 
-     circleIds.forEach(id => {
-        d3.select(`#${CSS.escape(id)}`).transition().attr("opacity", opacity);
+    circleIds.forEach(id => {
+        let circleCurrent = d3.select(`#${CSS.escape(id)}`);
+        if (!circleCurrent.empty()) {
+            let counterOpacity = Number(circleCurrent.attr("counter-opacity")) + opacityStep;
+            circleCurrent.attr("counter-opacity", counterOpacity);
+            let opacity = counterOpacity === 0 ? 1 : 0.5
+            circleCurrent.transition().attr("opacity", opacity);
+        }
     });
 }
 
-function updateCirclesBasedOnQuestion(questionId, opacity) {
+function updateCirclesBasedOnQuestion(questionId, opacityStep) {
     let circleIds = [];
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
     for (let i = 0; i < numberOfIndividuals; i++) {
@@ -132,7 +138,13 @@ function updateCirclesBasedOnQuestion(questionId, opacity) {
     }
 
      circleIds.forEach(id => {
-        d3.select(`#${CSS.escape(id)}`).transition().attr("opacity", opacity);
+        let circleCurrent = d3.select(`#${CSS.escape(id)}`);
+        if (!circleCurrent.empty()) {
+            let counterOpacity = Number(circleCurrent.attr("counter-opacity")) + opacityStep;
+            circleCurrent.attr("counter-opacity", counterOpacity);
+            let opacity = counterOpacity === 0 ? 1 : 0.5
+            circleCurrent.transition().attr("opacity", opacity);
+        }
     });
 }
 
@@ -154,11 +166,13 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             const isChecked = d3.select(this).property("checked");
             const attribute = d3.select(this).attr("id");
             if (isChecked) {
-            attributesChecked.add(attribute);
-            updateCirclesBasedOnQuestion(questionId, 1)
+                attributesChecked.add(attribute);
+                updateCirclesBasedOnQuestion(questionId, 1);
             }
-            else { attributesChecked.delete(attribute);
-            updateCirclesBasedOnQuestion(questionId, 0.3)}
+            else {
+                attributesChecked.delete(attribute);
+                updateCirclesBasedOnQuestion(questionId, -1);
+            }
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -209,7 +223,7 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
                 else {
                     if (questionId in optionsUnchecked) { optionsUnchecked[questionId].add(category); }
                     else { optionsUnchecked[questionId] = new Set([category]); }
-                    updateCirclesBasedOnOption(questionId, category, 0.3);
+                    updateCirclesBasedOnOption(questionId, category, -1);
                     removeNodes(questionId, category);
                 }
                 drawDataItemView();
@@ -335,6 +349,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
                         .attr("fill", colorBeeswarm)
+                        .attr("counter-opacity", 0)
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
                             const endAngle = completeness * 2 * Math.PI;
@@ -444,6 +459,7 @@ function updateAttributeView(){
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
                         .attr("fill", colorBeeswarm)
+                        .attr("counter-opacity", 0)
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
                             const endAngle = completeness * 2 * Math.PI;
@@ -457,6 +473,7 @@ function updateAttributeView(){
                 // 2. Restart the simulation with new energy
         simulationBeeswarm.alpha(1).restart();
     }
+    d3.selectAll(".checkbox-question").property("checked", true);
 }
 
 function createAttributeView(){
