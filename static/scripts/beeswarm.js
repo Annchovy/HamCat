@@ -7,9 +7,9 @@ let heightAttributeOverviewHeader = 0.1 * heightBeeswarm;
 let heightAttributeOverviewLabels = 0.5 * heightBeeswarm;
 
 let widthQuestion = 0.54 * widthBeeswarm;
-let heightQuestion = 0.08 * heightBeeswarm;
+let heightQuestion = 0.15 * heightBeeswarm;
 
-let radiusBeeswarm = 4;
+let radiusBeeswarm = 3;
 let colorBeeswarm = "#f4a582";
 const arcGenerator = d3.arc()
                     .innerRadius(0)
@@ -232,8 +232,8 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
 }
 
 function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
-    const top = (number - 1) * (0.075 * heightBeeswarm + heightQuestion);
-    const left = 0.07 * widthBeeswarm;
+    const top = (number - 1) * (0.1 * heightBeeswarm + heightQuestion);
+    const left = 0.08 * widthBeeswarm;
     const categoryWidth = widthQuestion / categories.length;
     let question = overviewAttribute.append("g")
                                     .attr("id", `question-section-${questionId}`)
@@ -325,7 +325,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                             .append('text')
                             .attr('class', 'tick-label')
                             .attr("x", d => tickPositions.get(d))
-                            .attr("y", yCenter + 40)
+                            .attr("y", yCenter + 0.7 * heightQuestion)
                             .attr("text-anchor", "middle")
                             .text(d => d)
                             .style("fill", "black");
@@ -418,7 +418,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
         .append("input")
         .attr("type", "number")
         .attr("min", 0)
-        .attr("max", 5)
+        .attr("max", 150)
         .attr("step", 0.5)
         .attr("value", 0)
         .attr("class", "question-selector")
@@ -509,7 +509,7 @@ d3.json("/attributes_items").then(data => {
     attributesOrderBeeswarm = data.attributesOrder;
     answers = data.items;
 
-    const heightAttributeOverview = (Object.keys(questions).length) * (heightQuestion + 0.047 * heightBeeswarm)
+    const heightAttributeOverview = (Object.keys(questions).length) * (heightQuestion + 0.1* heightBeeswarm)
     const heightBeeswarmSVG = heightAttributeOverviewHeader + heightAttributeOverviewLabels + heightAttributeOverview;
     beeswarmSVG.attr("height", heightBeeswarmSVG);
 

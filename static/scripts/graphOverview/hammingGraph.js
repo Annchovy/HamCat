@@ -25,7 +25,7 @@ let attributesOrder, mapQuestions;
 
 // Define node and datapoint radius
 let radiusMin, radiusMax;
-const radiusInner = 5;
+const radiusInner = 4;
 const radiusThreshold = 4;
 
 // Define node and datapoint colors
@@ -95,9 +95,9 @@ graphSVG.append("text")
         .attr("class", "annotation-level-1")
         .attr("x", 0)
         .attr("y", 0.47 * heightGraph)
-        .text("Ego Hamming Graph");
+        .text("Ego Hamming Network");
 
-appendTooltipHint(graphSVG, 152, 0.454 * heightGraph, hintsObject["egoHammingGraph"]);
+appendTooltipHint(graphSVG, 165, 0.454 * heightGraph, hintsObject["egoHammingGraph"]);
 
 graphSVG.append("text")
         .attr("class", "annotation-level-2")
@@ -123,7 +123,6 @@ function zoomed(event) {
   handleZoomDetail(transform.k);
 }
 
-
 function adjustSectionHeight(nodesData) {
   if (nodesData.length === 0) {
     sectionBB.height = 0;
@@ -139,7 +138,6 @@ function adjustSectionHeight(nodesData) {
   sectionBB.height = sectionHeight;
   return;
 }
-
 
 // Find max separation degree and build sections
 function buildSections(depth) {
@@ -360,7 +358,7 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     let n = Object.keys(nodes).length;
 
     if (edges[nodeMin][nodeMax].includes(question)) {
-        k = 1e-3 / n;
+        k = 10 / n;
         return -k * k * strength;
     }
     k = 1e7 / n;
@@ -377,8 +375,8 @@ function questionForce(question, strength) {
           const nodeB = nodes[j];
 
           const dx = nodeA.x - nodeB.x;
-          let distSquare = dx * dx  || 1;
-          let dist = dx || 1;
+          const dist = Math.abs(dx) || 1e-6;
+          const distSquare = dist * dist;
 
           let forceStrength = defineQuestionForce(nodeA, nodeB, question, strength);
           let force;
@@ -388,11 +386,11 @@ function questionForce(question, strength) {
             console.log(force);
           }
           else {
-            force = forceStrength * alpha * distSquare;
+            force = (dist == nodeA.r + nodeB.r) ? 0 : forceStrength * alpha * distSquare;
             console.log(force);
           }
 
-          const fx = force * dx;
+          const fx = force * dx / dist;
 
           nodeA.vx -= fx;
           nodeB.vx += fx;
@@ -414,14 +412,14 @@ function applyQuestionBasedForceGraph(question, strength) {
         delete questionForces[`questionForce-${question}`];
         if (Object.keys(questionForces).length === 0) {
             //simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
-            simulationGraph.force("hamming", hammingForce(10))
+            //simulationGraph.force("hamming", hammingForce(0.5))
         }
     }
     else {
         let questionForceCurrent = questionForce(question, strength);
         questionForces[`questionForce-${question}`] = questionForceCurrent;
         //simulationGraph.force('center', null);
-        simulationGraph.force('hamming', null);
+        //simulationGraph.force('hamming', null);
         simulationGraph.force(`questionForce-${question}`, questionForceCurrent);
     }
     simulationGraph.alpha(1).restart();
@@ -430,45 +428,48 @@ function applyQuestionBasedForceGraph(question, strength) {
 
 function hammingForce(strength = 0.1) {
     let nodes;
+    let baseLength;
 
     function force(alpha) {
       for (let i = 0; i < nodes.length; ++i) {
         for (let j = i + 1; j < nodes.length; ++j) {
-          const nodeA = nodes[i];
-          const nodeB = nodes[j];
+            const nodeA = nodes[i];
+            const nodeB = nodes[j];
 
-          if (nodeA.degree !== nodeB.degree) continue;
+            if (nodeA.degree !== nodeB.degree) continue;
 
-          const hd = edges[i][j].length;
-          //const forceStrength = strength / (hd + 1);
-          let forceStrength;
+            const hd = edges[i][j].length;
+            const normalizedHD = hd / attributesChecked.size;
 
-          const dx = nodeB.x - nodeA.x;
-          const dy = nodeB.y - nodeA.y;
-          const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-          const nx = dx / distance;
-          const ny = dy / distance;
+            let height = sectionsY[nodeA.degree + 1] - sectionsY[nodeA.degree];
 
-          if (hd === 0){
-            forceStrength = distance <= (nodeA.r + nodeB.r + 2) ? 0 : strength * distance;
-          }
-          else {
-            forceStrength = -(hd * strength / distance);
-          }
+            //let baseLength = Math.sqrt(height * sectionBB.width) / degrees[nodeA.degree].length;
+            //const restLength = (baseLength * normalizedHD + nodeA.r + nodeB.r);
+            const restLength = baseLength * normalizedHD;
 
-          const fx = nx * forceStrength * alpha;
-          const fy = ny * forceStrength * alpha;
+            const dx = nodeB.x - nodeA.x;
+            const dy = nodeB.y - nodeA.y;
+            const distance = Math.sqrt(dx * dx + dy * dy) || 1e-12;
+            const nx = dx / distance;
+            const ny = dy / distance;
 
-          nodeA.vx += fx;
-          nodeA.vy += fy;
-          nodeB.vx -= fx;
-          nodeB.vy -= fy;
+            const displacement = distance - restLength;
+            const forceStrength = strength * displacement * alpha;
+
+            const fx = nx * forceStrength;
+            const fy = ny * forceStrength;
+
+            nodeA.vx += fx;
+            nodeA.vy += fy;
+            nodeB.vx -= fx;
+            nodeB.vy -= fy;
         }
       }
     }
 
     force.initialize = function (_nodes) {
       nodes = _nodes;
+      baseLength = 0.5 * sectionBB.width;
     };
 
     return force;
@@ -488,10 +489,10 @@ function initializeSimulation(nodesData, questionForces) {
     }
 
     simulationGraph.force("collide", d3.forceCollide((d) => d.r + 1))
-    /*.force("charge", d3.forceManyBody().strength((d) => -d.r))*/
+    //.force("charge", d3.forceManyBody().strength((d) => -d.r))
     /*.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))*/
-    .force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(1))
-    .force("hamming", hammingForce(2))
+    //.force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(1))
+    .force("hamming", hammingForce(0.1))
     /*.force(
       "firstSectionForceLeft",
       d3.forceX((d) => d.degree === degreeNonEmpty ? sectionBB.x : null)

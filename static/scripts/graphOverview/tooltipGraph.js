@@ -13,7 +13,7 @@ let mouseoverGroupNode = function (event, d) {
 
 let mousemoveGroupNode = function (event, d) {
   event.stopPropagation();
-  let attributes = ["count", ...attributesOrder];
+  let attributes = ["count", ...attributesOrder].filter((key) => key in d.node);
   let nodeAttributes = attributes.map(
     (key) => key + ": " + d.node[key],
   );

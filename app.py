@@ -6,18 +6,19 @@ from collections import defaultdict, deque
 from flask import Flask, render_template, jsonify, request
 from typing import Optional
 
-#FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
-#FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
+DATASET_NAME = 'didactics_responses_2025_09_09'
+FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
+FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
 
-DATASET_NAME = 'dummy_answers_h1'
-FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
-FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
+#DATASET_NAME = 'dummy_answers_h1'
+#FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
+#FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
 
 #IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
 DF_ORIGINAL = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
 #ID_ORIGINAL = 'id'
 #DF_ORIGINAL.rename(columns={ID_ORIGINAL: 'id_original'}, inplace=True)
-COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count']]
+COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count', 'Year']]
 
 
 def split_dataset(df: pd.DataFrame, columns: list) -> tuple:
@@ -79,6 +80,8 @@ def calculate_probable_nodes(df: pd.DataFrame, attributes: dict) -> pd.DataFrame
         df, probability = calculate_probable_nodes_per_row(row, attributes)
         df["probability"] = probability
         dfs_probable.append(df)
+    if len(dfs_probable) == 0:
+        return None
     df_probable = pd.concat(dfs_probable, axis=0)
     return df_probable
 
@@ -179,17 +182,17 @@ def recalculate_graph():
     attribute_description = data.get('attribute_description') if 'attribute_description' in data else ATTRIBUTES_DESCRIPTION
 
     df = calculate_nodes(DF_WITHOUT_MISSING, attributes)
-    if 'missingness' in data and data.get('missingness') > 0:
-        missingness = data.get('missingness')
-        df['missingness'] = 0
-        df['probability'] = 1
-        df['missing_attributes'] = ''
-        attributes_probable = attributes + ['missingness', 'probability', 'missing_attributes', 'ids', 'count']
-        df_probable = DF_PROBABLE[DF_PROBABLE['missingness'] <= missingness][attributes_probable]
-        df = pd.concat([df, df_probable])
-        df['grouped_info'] = df.apply(build_info, axis=1)
-        df = df.groupby(attributes).agg(grouped_info=('grouped_info', list), count=('count', 'sum')).reset_index()
-
+    if DF_PROBABLE:
+        if 'missingness' in data and data.get('missingness') > 0:
+            missingness = data.get('missingness')
+            df['missingness'] = 0
+            df['probability'] = 1
+            df['missing_attributes'] = ''
+            attributes_probable = attributes + ['missingness', 'probability', 'missing_attributes', 'ids', 'count']
+            df_probable = DF_PROBABLE[DF_PROBABLE['missingness'] <= missingness][attributes_probable]
+            df = pd.concat([df, df_probable])
+            df['grouped_info'] = df.apply(build_info, axis=1)
+            df = df.groupby(attributes).agg(grouped_info=('grouped_info', list), count=('count', 'sum')).reset_index()
     nodes = df.to_dict(orient='index')
     edges, groupings = calculate_graph(nodes, attributes, attribute_description)
     return jsonify({'nodes': nodes, 'edges': edges, 'groupings': groupings})
@@ -217,9 +220,10 @@ def extract_attributes_items_with_missing():
 @app.route('/attributes_items')
 def extract_attributes_items():
     df_dict = DF_WITHOUT_MISSING.to_dict(orient='list')
-    return jsonify({'attributes': ATTRIBUTES_DESCRIPTION,
+    attributes_order = [attribute for attribute in ATTRIBUTES_DESCRIPTION.keys() if attribute in COLUMNS]
+    return jsonify({'attributes': {key: value for key, value in ATTRIBUTES_DESCRIPTION.items() if key in COLUMNS},
                     'items': df_dict,
-                    'attributesOrder': list(ATTRIBUTES_DESCRIPTION.keys())})
+                    'attributesOrder': attributes_order})
 
 
 if __name__ == '__main__':
