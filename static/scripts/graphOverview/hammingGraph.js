@@ -24,7 +24,7 @@ let nodes, edges, groupings;
 let attributesOrder, mapQuestions;
 
 // Define node and datapoint radius
-let radiusMin, radiusMax;
+let radiusMin, radiusMax, radiusScale;
 const radiusInner = 4;
 const radiusThreshold = 4;
 
@@ -97,7 +97,7 @@ graphSVG.append("text")
         .attr("y", 0.47 * heightGraph)
         .text("Ego Hamming Network");
 
-appendTooltipHint(graphSVG, 165, 0.454 * heightGraph, hintsObject["egoHammingGraph"]);
+appendTooltipHint(graphSVG, 165, 0.458 * heightGraph, hintsObject["egoHammingGraph"]);
 
 graphSVG.append("text")
         .attr("class", "annotation-level-2")
@@ -129,11 +129,15 @@ function adjustSectionHeight(nodesData) {
     return;
   }
 
-  let sectionHeight = Math.max(nodesData.length * 2 * radiusMax / (0.96 * widthGraph), 1) * 2 * radiusMax;
+  const counts = nodesData.map((node) => nodes[node]["count"]);
+  const numberRespondentsMax = Math.max(...counts);
+  let radiusMaxCurrent = radiusScale(numberRespondentsMax);
+
+  let sectionHeight = Math.max(nodesData.length * 2 * radiusMaxCurrent / (0.96 * widthGraph), 1) * 2 * radiusMaxCurrent;
 
   // additional multiplication by 2 to give the nodes the ability to cluster vertically
   if (nodesData.length > 2) {
-    sectionHeight *= 1.5;
+    sectionHeight *= 2;
   }
   sectionBB.height = sectionHeight;
   return;
@@ -358,10 +362,10 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
     let n = Object.keys(nodes).length;
 
     if (edges[nodeMin][nodeMax].includes(question)) {
-        k = 10 / n;
+        k = 10 / Math.sqrt(n);
         return -k * k * strength;
     }
-    k = 1e7 / n;
+    k = 1e5 / Math.sqrt(n);
     return strength / k;
 }
 
@@ -386,7 +390,7 @@ function questionForce(question, strength) {
             console.log(force);
           }
           else {
-            force = (dist == nodeA.r + nodeB.r) ? 0 : forceStrength * alpha * distSquare;
+            force = (dist == (nodeA.r + nodeB.r) * 1.1) ? 0 : forceStrength * alpha * distSquare;
             console.log(force);
           }
 
@@ -412,14 +416,14 @@ function applyQuestionBasedForceGraph(question, strength) {
         delete questionForces[`questionForce-${question}`];
         if (Object.keys(questionForces).length === 0) {
             //simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
-            //simulationGraph.force("hamming", hammingForce(0.5))
+            simulationGraph.force("hamming", hammingForce(0.1))
         }
     }
     else {
         let questionForceCurrent = questionForce(question, strength);
         questionForces[`questionForce-${question}`] = questionForceCurrent;
         //simulationGraph.force('center', null);
-        //simulationGraph.force('hamming', null);
+        simulationGraph.force('hamming', null);
         simulationGraph.force(`questionForce-${question}`, questionForceCurrent);
     }
     simulationGraph.alpha(1).restart();
@@ -634,11 +638,6 @@ function constructDegrees(nodeId, depth) {
 // Draw graph
 function drawGraph(nodeId, depth) {
 
-  const radiusScale = d3
-    .scaleLinear()
-    .domain(numberRespondentsRange)
-    .range([radiusMin, radiusMax]);
-
   /*let nodeFocus = {
     x: 0.5 * widthGraph,
     y: 0.5 * heightDegree,
@@ -710,6 +709,10 @@ function drawDataItemView() {
 
   radiusMin = calculateOuterRadius(numberRespondentsRange[0], radiusInner + 5);
   radiusMax = calculateOuterRadius(numberRespondentsRange[1], radiusInner + 5);
+  radiusScale = d3
+    .scaleLinear()
+    .domain(numberRespondentsRange)
+    .range([radiusMin, radiusMax]);
 
   const depthRaw = computeRelativeMaxDepth(nodeMaxId);
   const depth = Math.floor(depthRaw / binning);
@@ -718,7 +721,7 @@ function drawDataItemView() {
   buildSections(depth);
   drawGraph(nodeMaxId, depth);
   drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees);
-  graphSVG.attr("height", sectionsY[sectionsY.length - 1] + 0.5 * heightBeeswarm);
+  graphSVG.attr("height", sectionsY[sectionsY.length - 1] + 0.9 * heightBeeswarm);
 }
 
 d3.json("/extract_graph").then((data) => {

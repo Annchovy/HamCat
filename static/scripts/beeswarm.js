@@ -7,7 +7,8 @@ let heightAttributeOverviewHeader = 0.1 * heightBeeswarm;
 let heightAttributeOverviewLabels = 0.5 * heightBeeswarm;
 
 let widthQuestion = 0.54 * widthBeeswarm;
-let heightQuestion = 0.15 * heightBeeswarm;
+//let heightQuestion = 0.15 * heightBeeswarm;
+let heightQuestion = 0.09 * heightBeeswarm;
 
 let radiusBeeswarm = 3;
 let colorBeeswarm = "#f4a582";
@@ -190,13 +191,23 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
             .catch((error) => { console.error('Error:', error); });
         })
 
+    let tooltip = d3.select("body").append("div").attr("class", "tooltip");
     question.append("text")
             .attr("x", 0)
             .attr("y", yCenter)
             .attr("dy", ".35em")
             .attr("dx", ".25em")
             .attr("class", "annotation-level-2")
-            .text(questionId);
+            .text(questionId)
+            .on("mouseover", function (event) {
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(questions[questionId].text)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", event.pageY + "px");
+            })
+            .on("mouseout", function () {
+                tooltip.transition().duration(100).style("opacity", 0);
+            });
 
     // append option check boxes
     for (let i = 0; i < categories.length; i++) {
@@ -410,7 +421,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
     // Add strength selectors
     question.append("foreignObject")
         .attr("x", left + 1.38 * widthQuestion)
-        .attr("y", 0.3 * heightQuestion)
+        .attr("y", 0.35 * heightQuestion)
         .attr("width", 0.135 * widthQuestion)
         .attr("height", 0.4 * heightQuestion)
         .attr("id", `strength-${questionId}`)

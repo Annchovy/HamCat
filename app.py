@@ -10,7 +10,7 @@ DATASET_NAME = 'didactics_responses_2025_09_09'
 FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
 FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
 
-#DATASET_NAME = 'dummy_answers_h1'
+#DATASET_NAME = 'synthetic_dataset_h1'
 #FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
 #FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
 
@@ -182,7 +182,7 @@ def recalculate_graph():
     attribute_description = data.get('attribute_description') if 'attribute_description' in data else ATTRIBUTES_DESCRIPTION
 
     df = calculate_nodes(DF_WITHOUT_MISSING, attributes)
-    if DF_PROBABLE:
+    if DF_PROBABLE is not None:
         if 'missingness' in data and data.get('missingness') > 0:
             missingness = data.get('missingness')
             df['missingness'] = 0
