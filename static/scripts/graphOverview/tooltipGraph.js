@@ -21,8 +21,8 @@ let mousemoveGroupNode = function (event, d) {
 
   const tooltipHeight = tooltipGraph.node().offsetHeight || 0;
   const tooltipWidth = tooltipGraph.node().offsetWidth || 0;
-  let left = event.pageX - tooltipWidth - 10;
-  let top = event.pageY - tooltipHeight - 10;
+  let left = event.clientX - tooltipWidth - 10;
+  let top = event.clientY - tooltipHeight - 10;
 
   tooltipGraph
     .html(tooltipText)
@@ -59,8 +59,8 @@ let mousemoveItemNode = function (event, d) {
 
   const tooltipHeight = tooltipGraph.node().offsetHeight || 0;
   const tooltipWidth = tooltipGraph.node().offsetWidth || 0;
-  let left = event.pageX - tooltipWidth - 10;
-  let top = event.pageY - tooltipHeight - 10;
+  let left = event.clientX - tooltipWidth - 10;
+  let top = event.clientY - tooltipHeight - 10;
 
   tooltipGraph
     .html(tooltipText)

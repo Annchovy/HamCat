@@ -21,8 +21,8 @@ function appendTooltipHint(svg, x, y, text) {
        .on("mouseover", function (event) {
             tooltip.transition().duration(200).style("opacity", 1);
             tooltip.html(text)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", event.pageY + "px");
+                .style("left", (event.clientX + 10) + "px")
+                .style("top", event.clientY + "px");
         })
         .on("mouseout", function () {
             tooltip.transition().duration(100).style("opacity", 0);

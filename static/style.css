@@ -96,6 +96,7 @@ html, body {
     border-radius: 5px;
     padding: 5px;
     font-size: 14px;
+    pointer-events: none;
     z-index: 9999;
 }
 
@@ -123,11 +124,13 @@ html, body {
 .tick-label {
   cursor: grab;
   font-size: 0.55em;
+  pointer-events: none;
   /*font-size: 0.75em;*/
 }
 
 .question-label {
   font-size: 0.8em;
+  pointer-events: none;
 }
 
 .entropy-section-label {
