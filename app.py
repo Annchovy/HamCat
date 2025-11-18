@@ -175,11 +175,13 @@ def build_info(row):
         'ids': row['ids']
     }
 
+
 @app.route('/recalculate_graph', methods=['POST'])
 def recalculate_graph():
     data = request.get_json()
     attributes = data.get('attributes') if 'attributes' in data else COLUMNS
     attribute_description = data.get('attribute_description') if 'attribute_description' in data else ATTRIBUTES_DESCRIPTION
+    attribute_levels_excluded = data.get('attribute_levels_excluded') if 'attribute_levels_excluded' in data else {}
 
     df = calculate_nodes(DF_WITHOUT_MISSING, attributes)
     if DF_PROBABLE is not None:
@@ -193,6 +195,13 @@ def recalculate_graph():
             df = pd.concat([df, df_probable])
             df['grouped_info'] = df.apply(build_info, axis=1)
             df = df.groupby(attributes).agg(grouped_info=('grouped_info', list), count=('count', 'sum')).reset_index()
+
+    mask = pd.Series(True, index=df.index)
+    for col, val in attribute_levels_excluded.items():
+        if col in df.columns:
+            mask &= ~df[col].isin(val)
+
+    df = df[mask].reset_index(drop=True)
     nodes = df.to_dict(orient='index')
     edges, groupings = calculate_graph(nodes, attributes, attribute_description)
     return jsonify({'nodes': nodes, 'edges': edges, 'groupings': groupings})

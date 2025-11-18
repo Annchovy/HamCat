@@ -29,10 +29,12 @@ const radiusInner = 4;
 const radiusThreshold = 4;
 
 // Define node and datapoint colors
-const colorNode = "#6495ED50",
-  colorDatapoint = "#1a237e";
+//const colorNode = "#6495ED50";
+const colorNode = "#D3D3D395";
+const colorDatapoint = "#1a237e";
 
 const pinkDark = "rgb(181, 9, 101)";
+const colorMap = { "other": "green", "female": "#DD6C40", "male": "#509DA9" }
   
 const colorLinksHD1 = "#ADD8E640",
   colorLinksSameGroup = "#FFB6C140";
@@ -242,7 +244,9 @@ function drawInnerCirclesPerNode(circlesInnerData, nodeGroup) {
         .attr("class", d => `inner-circle data-item-${d.id}`)
         .attr("transform", d => `translate(${d.x}, ${d.y})`)
         .attr("d", d => arcGenerator(d))
-        .style("fill", colorDatapoint)
+        .style("fill", d => (
+        d.gender in colorMap ? colorMap[d.gender] : colorDatapoint)
+        )
         .style("fill-opacity", d => opacityScale(d.probability))
         .on("mouseover", mouseoverItemNode)
         .on("mousemove", mousemoveItemNode)
@@ -260,7 +264,8 @@ function drawInnerCircles(nodesData) {
           r: radiusInner,
           missingness: 0,
           probability: 1,
-          id: node.node.ids[i]
+          id: node.node.ids[i],
+          gender: node.node.Gender
         }));
     }
     else {
@@ -387,11 +392,9 @@ function questionForce(question, strength) {
 
           if (forceStrength < 0) {
             force = forceStrength * alpha / dist;
-            console.log(force);
           }
           else {
             force = (dist == (nodeA.r + nodeB.r) * 1.1) ? 0 : forceStrength * alpha * distSquare;
-            console.log(force);
           }
 
           const fx = force * dx / dist;

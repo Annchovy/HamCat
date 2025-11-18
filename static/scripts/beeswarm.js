@@ -79,35 +79,6 @@ let overviewAttribute = beeswarmSVG.append("g")
 
 const yCenter = heightQuestion / 2;
 
-
-function addNodes(questionId, category) {
-    for (const key in nodesRemoved) {
-        if (nodesRemoved[key][questionId] === category) {
-            let returnNodeFlag = true;
-            for (const question in optionsUnchecked) {
-                if (nodesRemoved[key][question] in optionsUnchecked[question]) {
-                    returnNodeFlag = false;
-                    break;
-                }
-            }
-            if (returnNodeFlag) {
-                nodes[key] = nodesRemoved[key];
-                delete nodesRemoved[key];
-            }
-        }
-    }
-}
-
-function removeNodes(questionId, category) {
-    for (const key in nodes) {
-        const answer = nodes[key][questionId];
-        if (answer === category) {
-            nodesRemoved[key] = nodes[key];
-            delete nodes[key];
-        }
-    }
-}
-
 function updateCirclesBasedOnOption(questionId, category, opacityStep) {
     let circleIds = [];
 
@@ -149,7 +120,6 @@ function updateCirclesBasedOnQuestion(questionId, opacityStep) {
     });
 }
 
-
 function appendCheckBoxes(question, questionId, categories, tickPositions) {
     // append question check boxes
     question.append("foreignObject")
@@ -174,11 +144,13 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
                 attributesChecked.delete(attribute);
                 updateCirclesBasedOnQuestion(questionId, -1);
             }
+            let attributeLevelsExcluded = Object.fromEntries(Object.entries(optionsUnchecked).map(([key, value]) => [key, [...value]]));
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({'attributes': Array.from(attributesChecked),
                                       'attribute_description': questions,
+                                      'attribute_levels_excluded': attributeLevelsExcluded,
                                       'missingness': degreeMissingness}),
             })
             .then(response => response.json())
@@ -229,16 +201,30 @@ function appendCheckBoxes(question, questionId, categories, tickPositions) {
                 if (isChecked) {
                     optionsUnchecked[questionId].delete(category);
                     updateCirclesBasedOnOption(questionId, category, 1);
-                    addNodes(questionId, category);
                 }
                 else {
                     if (questionId in optionsUnchecked) { optionsUnchecked[questionId].add(category); }
                     else { optionsUnchecked[questionId] = new Set([category]); }
                     updateCirclesBasedOnOption(questionId, category, -1);
-                    removeNodes(questionId, category);
                 }
-                drawDataItemView();
-            });
+                let attributeLevelsExcluded = Object.fromEntries(Object.entries(optionsUnchecked).map(([key, value]) => [key, [...value]]));
+                fetch('/recalculate_graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({'attributes': Array.from(attributesChecked),
+                                          'attribute_description': questions,
+                                          'attribute_levels_excluded': attributeLevelsExcluded,
+                                          'missingness': degreeMissingness}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    nodes = data.nodes;
+                    edges = data.edges;
+                    drawDataItemView();
+                    buildSliderGraph(attributesChecked.size + 1);
+                })
+                .catch((error) => { console.error('Error:', error); });
+                });
     }
 }
 
@@ -361,12 +347,12 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .attr("id", d => `${questionId}-${d.id}`)
                         .attr("fill", colorBeeswarm)
                         .attr("counter-opacity", 0)
+                        .style("pointer-events", "none")
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
                             const endAngle = completeness * 2 * Math.PI;
                             return arcGenerator({ startAngle: 0, endAngle: endAngle });
-                        })
-                        .style("pointer-events", "none");
+                        });
 
     function ticked() {
       question.selectAll(".circ").attr("transform", d => `translate(${d.x}, ${d.y})`);
@@ -374,8 +360,6 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
 
     const drag = d3.drag()
         .on("drag", function(event, d) {
-            if (!attributesChecked.has(questionId)) return;
-            //if (d.category in optionsUnchecked) return;
             const newX = Math.max(questionLeft, Math.min(questionRight, event.x));
             tickPositions.set(d, newX);
             d3.select(this)
@@ -390,19 +374,28 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             checkbox.attr("x", newX - 0.022 * widthQuestion);
         })
         .on("end", function(event, d) {
-            if (!attributesChecked.has(questionId)) return;
-            //if (d.category in optionsUnchecked) return;
             const newX = event.x;
-            const proportion = (newX - questionLeft) / widthQuestion;
-            const categoryRange = d3.max(categories) - d3.min(categories);
-            categoriesMap[questionId][d] = d3.min(categories) + categoryRange * proportion;
-            const categoryNew = Math.floor((newX - left) / categoryWidth);
+            const region = widthQuestion / (categories.length - 1);
+            const categoryLength = newX - questionLeft;
+            let categoryNew;
+            if (categoryLength <= region/2) {
+               categoryNew = 0;
+            }
+            else if (categoryLength > (categories.length - 1.5) * region) {
+               categoryNew = categories.length - 1;
+            }
+            else {
+               categoryNew = Math.floor((categoryLength - region/2) / region) + 1;
+            }
+
             questions[questionId]['options_categories'][d] = categoryNew;
+            let attributeLevelsExcluded = Object.fromEntries(Object.entries(optionsUnchecked).map(([key, value]) => [key, [...value]]));
             fetch('/recalculate_graph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({'attributes': Array.from(attributesChecked),
                                       'attribute_description': questions,
+                                      'attribute_levels_excluded': attributeLevelsExcluded,
                                       'missingness': degreeMissingness})
             })
             .then(response => response.json())
@@ -438,8 +431,6 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             applyQuestionBasedForceGraph(questionId, value);
     });
 }
-
-let categoriesMap = {};
 
 function updateAttributeView(){
     const numberOfIndividuals = answers[Object.keys(answers)[0]].length;
@@ -503,7 +494,6 @@ function createAttributeView(){
     number = 1;
     for (const key of attributesOrderBeeswarm) {
         const value = questions[key];
-        categoriesMap[key] = value.options.reduce((acc, curr) => { acc[curr] = curr; return acc; }, {});
         let answersObjects = answers[key].map((d, index) => ({ category: d,
                                                                value: 1 - individualMissingCounts[index] / totalAttributes,
                                                                id: answers['id'][index] }));
