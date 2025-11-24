@@ -6,15 +6,9 @@ function checkMatch(node, nodeProbable) {
 }
 
 
-function calculateHammingDistance(nodeId, nodeFocus, nodes) {
-    
-}
-
-
 function drawProbableNodes(nodesProbableIds, nodesProbable, nodes) {
     let nodesData = graph.selectAll(".node-group").data;
     for (const nodeId of nodesProbableIds) {
-
 
         let circle = {
             x: 0.5 * widthGraph,
@@ -24,6 +18,7 @@ function drawProbableNodes(nodesProbableIds, nodesProbable, nodes) {
             node: nodes[nodeCurrentId],
             id: nodeCurrentId,
             degree: i,
+            gender: nodes[nodeCurrentId].node.Gender
         };
         nodesData.push(circle);
     }
@@ -68,7 +63,7 @@ function drawMissingDataGraph(nodes, nodesProbable) {
                     .attr("class", "inner-circle")
                     .attr("transform", d => `translate(${d.x}, ${d.y})`)
                     .attr("d", d => arcGenerator(d))
-                    .style("fill", colorDatapoint);
+                    .style("fill", d => (d.gender in colorMap ? colorMap[d.gender] : colorDatapoint));
             }
         }
     }

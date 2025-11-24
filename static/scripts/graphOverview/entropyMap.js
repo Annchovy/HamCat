@@ -4,27 +4,26 @@ function computeEntropy(nodeIds) {
   for (const attr of attributesOrder) {
     attributeValueCounts[attr] = {};
     for (const nodeId of nodeIds) {
-      const val = nodes[nodeId][attr];
+      const val = questions[attr]['options_categories'][nodes[nodeId][attr]];
       if (!(val in attributeValueCounts[attr])) {
         attributeValueCounts[attr][val] = 0;
       }
-      attributeValueCounts[attr][val] += 1;
+      attributeValueCounts[attr][val] += nodes[nodeId]['count'];
     }
   }
-
   let totalEntropy = 0;
   const totalNodes = nodeIds.length;
+  const totalItems = nodeIds.reduce((accumulator, nodeId) => { return accumulator + nodes[nodeId]['count']}, 0)
 
   for (const attr in attributeValueCounts) {
     let entropyAttr = 0;
     const counts = Object.values(attributeValueCounts[attr]);
     for (const count of counts) {
-      const p = count / totalNodes;
+      const p = count / totalItems;
       entropyAttr += -p * Math.log2(p);
     }
     totalEntropy += entropyAttr;
   }
-
   return totalEntropy / attributesOrder.length;
 }
 
@@ -45,7 +44,6 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
                                           .attr("height", entropyMapBarchartHeight)
                                           .attr("transform",
                                           `translate(${entropyMapBarchartX}, ${entropyMapBarchartY})`);
-
     const barScale = d3.scaleLinear()
                          .domain([0, maxInnerCircles])
                          .range([0, 0.5 * entropyMapHeight]);
@@ -59,7 +57,7 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
     }
 
     const maxEntropy = Math.max(...Object.values(entropies));
-    const entropyColor = d3.scaleLinear().domain([0, maxEntropy]).range(["#ffffff", "#00008b"]);
+    const entropyColor = maxEntropy === 0 ? () => "#ffffff" : d3.scaleLinear().domain([0, maxEntropy]).range(["#ffffff", "#00008b"]);
 
     for (let i = 0; i <= depth; i++) {
         const sectionX = i * sectionWidth;
@@ -79,6 +77,7 @@ function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, de
               .attr("class", "entropy-section")
               .attr("width", sectionWidth)
               .attr("fill", color)
+              .attr("stroke", "black")
               .attr("stroke-width", 1);
 
         group.append("text")

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
 	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -9,6 +9,15 @@
 	<div id="modal-overlay" class="overlay hidden">
 		<div class="modal">
 			<button class="guide-button close-button" id="close-guide-button">Close</button>
+			<p style="padding: 50px;">     Dataset view shows what dataset is being displayed and the slider for the inclusion of missing data.
+					Move the slider to adjust the missingness threshold and include data items with missing levels below or equal to the set threshold.<br>
+					Attribute view provides an overview of the attributes in your dataset along with their levels and level counts.<br>
+					Item view includes two parts: an ego Hamming network and an entropy map. The ego network allows you to explore your data items grouped based on their attribute levels.
+					Data items with identical levels across all attributes are grouped together into a node. <br>
+				    We view the grouped data items – the nodes - from the “perspective” of the focal node located in layer 0.
+					Initially, the most frequent data item is chosen as the focal node. However, you can select a different node of the network as the focal node by clicking on it.
+					The rest of the nodes is placed across the layers based on their dissimilarity to the focal node – the number of the differing attribute levels.
+					The more dissimilar nodes to the focal node the farther they are from it in the graph.
 		</div>
 	</div>
 	<div class="title-row">

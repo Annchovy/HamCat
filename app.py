@@ -6,19 +6,21 @@ from collections import defaultdict, deque
 from flask import Flask, render_template, jsonify, request
 from typing import Optional
 
-DATASET_NAME = 'didactics_responses_2025_09_09'
-FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
-FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
+#DATASET_NAME = 'didactics_responses_2025_09_09'
+#FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
+#FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
 
-#DATASET_NAME = 'synthetic_dataset_h1'
-#FILE_RESPONSES = f'data/dummy_data/{DATASET_NAME}'
-#FILE_QUESTIONS = 'data/dummy_data/dummy_questions.json'
+DATASET_NAME = 'synthetic_dataset_for_comparison'
+FILE_RESPONSES = f'data/data_for_comparison/{DATASET_NAME}'
+FILE_QUESTIONS = 'data/data_for_comparison/questions_for_comparison.json'
 
 #IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
 DF_ORIGINAL = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
 #ID_ORIGINAL = 'id'
 #DF_ORIGINAL.rename(columns={ID_ORIGINAL: 'id_original'}, inplace=True)
 COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count', 'Year']]
+                                                                       #,'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14',
+                                                                       #'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22']]
 
 
 def split_dataset(df: pd.DataFrame, columns: list) -> tuple:

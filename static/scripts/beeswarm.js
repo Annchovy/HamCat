@@ -10,8 +10,9 @@ let widthQuestion = 0.54 * widthBeeswarm;
 //let heightQuestion = 0.15 * heightBeeswarm;
 let heightQuestion = 0.09 * heightBeeswarm;
 
-let radiusBeeswarm = 3;
-let colorBeeswarm = "#f4a582";
+let radiusBeeswarm = 4;
+//let colorBeeswarm = "#f4a582";
+let colorBeeswarm = "#d5529b";
 const arcGenerator = d3.arc()
                     .innerRadius(0)
                     .outerRadius(radiusBeeswarm);
@@ -336,8 +337,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                   .attr("y1", 0.2 * heightQuestion)
                   .attr("y2", 0.8 * heightQuestion)
                   .style("stroke-width", 1.5)
-                  .style('stroke', 'grey')
-                  .style("pointer-events", "all");
+                  .style('stroke', 'grey');
 
     let circles = question.selectAll(".circ")
                         .data(withCategory)
@@ -345,7 +345,8 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .append("path")
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
-                        .attr("fill", colorBeeswarm)
+                        .attr("fill", d => (d.gender in colorMap ? colorMap[d.gender] : colorBeeswarm))
+                        //.attr("fill", colorBeeswarm)
                         .attr("counter-opacity", 0)
                         .style("pointer-events", "none")
                         .attr("d", d => {
@@ -460,7 +461,7 @@ function updateAttributeView(){
                         .append("path")
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
-                        .attr("fill", colorBeeswarm)
+                        .attr("fill", d => (d.gender in colorMap ? colorMap[d.gender] : colorBeeswarm))
                         .attr("counter-opacity", 0)
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
@@ -496,7 +497,8 @@ function createAttributeView(){
         const value = questions[key];
         let answersObjects = answers[key].map((d, index) => ({ category: d,
                                                                value: 1 - individualMissingCounts[index] / totalAttributes,
-                                                               id: answers['id'][index] }));
+                                                               id: answers['id'][index],
+                                                               gender: answers['Gender'][index] }));
         let options = value.options.map(d => d.toString());
         createQuestionBeeswarm(options, answersObjects, number, key);
         number++;

@@ -29,8 +29,8 @@ const radiusInner = 4;
 const radiusThreshold = 4;
 
 // Define node and datapoint colors
-//const colorNode = "#6495ED50";
-const colorNode = "#D3D3D395";
+//const colorNode = "#6495ED40";
+const colorNode = "#D3D3D370";
 const colorDatapoint = "#1a237e";
 
 const pinkDark = "rgb(181, 9, 101)";
@@ -279,7 +279,8 @@ function drawInnerCircles(nodesData) {
                     id: itemId,
                     missing_attributes: group.missing_attributes,
                     probability: group.probability.toFixed(2),
-                    missingness: group.missingness.toFixed(2)
+                    missingness: group.missingness.toFixed(2),
+                    gender: node.node.Gender
                 };
                 circlesInnerData.push(circle);
             }
@@ -497,8 +498,8 @@ function initializeSimulation(nodesData, questionForces) {
 
     simulationGraph.force("collide", d3.forceCollide((d) => d.r + 1))
     //.force("charge", d3.forceManyBody().strength((d) => -d.r))
-    /*.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))*/
-    //.force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(1))
+    //.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))
+    //.force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(0.01))
     .force("hamming", hammingForce(0.1))
     /*.force(
       "firstSectionForceLeft",
