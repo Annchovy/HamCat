@@ -1,0 +1,48 @@
+{"Gender": {
+  "options_categories": {
+        "other": 0,
+        "female": 1,
+        "male": 2
+    },
+   "options": ["other","female", "male"],
+  "importance": 1,
+  "group": "general",
+  "text": "What’s your gender?"},
+  "q2": {
+    "options_categories": {
+        "-2": 0,
+        "-1": 1,
+        "0": 2,
+        "1": 3,
+        "2": 4
+    },
+   "options": [-2, -1, 0, 1, 2],
+  "importance": 1,
+  "group": "ST",
+  "text": "I am capable of excelling at informatics."},
+ "q3": {
+   "options_categories": {
+      "-2": 0,
+      "-1": 1,
+      "0": 2,
+      "1": 3,
+      "2": 4
+    },
+   "options": [-2, -1, 0, 1, 2],
+  "importance": 1,
+  "group": "ST",
+  "text": "I consider myself good at informatics."},
+ "q4": {
+   "options_categories": {
+        "-2": 0,
+        "-1": 1,
+        "0": 2,
+        "1": 3,
+        "2": 4
+    },
+   "options": [
+   -2, -1, 0, 1, 2],
+  "importance": 1,
+  "group": "ST",
+  "text": "My gender affects how easily I can succeed in informatics."}
+}
