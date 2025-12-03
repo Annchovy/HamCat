@@ -1,4 +1,4 @@
-HamCat: Ego-Centric Relationship Exploration for Multidimensional Categorical Data
+**HamCat: Ego-Centric Relationship Exploration for Multidimensional Categorical Data**
 
 We introduce HamCat, a novel visual analytics method for exploring and analyzing multidimensional categorical survey data. 
 Typical visualization approaches for multidimensional categorical data do not support simultaneous analysis of attributes and items, nor allow for in-depth similarity analysis of an entire dataset from the perspective of a specific reference point. 
