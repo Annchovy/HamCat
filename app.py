@@ -1,27 +1,21 @@
 import pandas as pd
 import json
 import numpy as np
+import logging
 
 from collections import defaultdict, deque
 from flask import Flask, render_template, jsonify, request
 from typing import Optional
 
-#DATASET_NAME = 'didactics_responses_2025_09_09'
-#FILE_RESPONSES = 'data/didactics/didactics_responses_2025_09_09'
-#FILE_QUESTIONS = 'data/didactics/didactics_questions_2025_09_09.json'
-
 DATASET_NAME = 'synthetic_dataset_for_comparison'
 FILE_RESPONSES = f'data/data_for_comparison/{DATASET_NAME}'
 FILE_QUESTIONS = 'data/data_for_comparison/questions_for_comparison.json'
 
-#IDs have to be consecutive numbers [0, N], where N+1 is the number of entries
 DF_ORIGINAL = pd.read_csv(FILE_RESPONSES, header=0, dtype=str)
-#ID_ORIGINAL = 'id'
-#DF_ORIGINAL.rename(columns={ID_ORIGINAL: 'id_original'}, inplace=True)
-COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count', 'Year']]
-                                                                       #,'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14',
-                                                                       #'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22']]
 
+
+COLUMNS = [column for column in DF_ORIGINAL.columns if column not in ['id', 'ID', 'Age', 'count', 'Year']]
+KEY_ATTRIBUTE = 'Gender'
 
 def split_dataset(df: pd.DataFrame, columns: list) -> tuple:
     rows_with_missing = df.fillna(np.nan).isnull().any(axis=1)
@@ -36,6 +30,7 @@ DF_WITH_MISSING, DF_WITHOUT_MISSING = split_dataset(DF_ORIGINAL, COLUMNS)
 
 with open(FILE_QUESTIONS) as f:
     ATTRIBUTES_DESCRIPTION = json.load(f)
+    ATTRIBUTES_DESCRIPTION = {key: ATTRIBUTES_DESCRIPTION[key] for key in COLUMNS if key in ATTRIBUTES_DESCRIPTION}
 
 #ID_COLUMN = 'id'
 #DF.rename({ID_COLUMN: 'id'}, inplace=True)
@@ -79,6 +74,8 @@ def calculate_probable_nodes(df: pd.DataFrame, attributes: dict) -> pd.DataFrame
     df = calculate_missingness(df, attributes)
     dfs_probable = []
     for i, row in df.iterrows():
+        #attributes_missing = [attribute for attribute in attributes.keys() if row[attribute] == '']
+        #if len(attributes_missing) > 4: continue
         df, probability = calculate_probable_nodes_per_row(row, attributes)
         df["probability"] = probability
         dfs_probable.append(df)
@@ -101,7 +98,10 @@ def index():
 
 def calculate_nodes(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     if columns:
-        df = df.groupby(columns)['id'].apply(list).reset_index(name='ids')
+        if KEY_ATTRIBUTE not in columns:
+            df = df.groupby((columns + [KEY_ATTRIBUTE]))['id'].apply(list).reset_index(name='ids')
+        else:
+            df = df.groupby(columns)['id'].apply(list).reset_index(name='ids')
         df['count'] = df['ids'].apply(len)
     else:
         df = pd.DataFrame({
@@ -186,6 +186,8 @@ def recalculate_graph():
     attribute_levels_excluded = data.get('attribute_levels_excluded') if 'attribute_levels_excluded' in data else {}
 
     df = calculate_nodes(DF_WITHOUT_MISSING, attributes)
+    logging.info("Calculated nodes for non-missing items")
+
     if DF_PROBABLE is not None:
         if 'missingness' in data and data.get('missingness') > 0:
             missingness = data.get('missingness')
@@ -194,6 +196,7 @@ def recalculate_graph():
             df['missing_attributes'] = ''
             attributes_probable = attributes + ['missingness', 'probability', 'missing_attributes', 'ids', 'count']
             df_probable = DF_PROBABLE[DF_PROBABLE['missingness'] <= missingness][attributes_probable]
+            logging.info("Calculated probable values")
             df = pd.concat([df, df_probable])
             df['grouped_info'] = df.apply(build_info, axis=1)
             df = df.groupby(attributes).agg(grouped_info=('grouped_info', list), count=('count', 'sum')).reset_index()

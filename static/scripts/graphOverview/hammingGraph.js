@@ -29,13 +29,11 @@ const radiusInner = 4;
 const radiusThreshold = 4;
 
 // Define node and datapoint colors
-//const colorNode = "#6495ED40";
 const colorNode = "#D3D3D370";
 const colorDatapoint = "#1a237e";
 
 const pinkDark = "rgb(181, 9, 101)";
-const colorMap = { "other": "green", "female": "#DD6C40", "male": "#509DA9" }
-  
+
 const colorLinksHD1 = "#ADD8E640",
   colorLinksSameGroup = "#FFB6C140";
 
@@ -117,7 +115,6 @@ const zoomX = d3.zoom()
   .translateExtent([[0, 0], [widthGraphSVG, heightGraphSVG]])
   .on("zoom", zoomed);
 
-//graphSVG.call(zoomX);
 
 function zoomed(event) {
   const transform = event.transform;
@@ -134,9 +131,14 @@ function adjustSectionHeight(nodesData) {
   const counts = nodesData.map((node) => nodes[node]["count"]);
   const numberRespondentsMax = Math.max(...counts);
   let radiusMaxCurrent = radiusScale(numberRespondentsMax);
+  /*let sectionHeight = Math.max(nodesData.length * 2 * radiusMaxCurrent / (0.96 * widthGraph), 1) * 2 * radiusMaxCurrent;*/
 
-  let sectionHeight = Math.max(nodesData.length * 2 * radiusMaxCurrent / (0.96 * widthGraph), 1) * 2 * radiusMaxCurrent;
-
+  const numberRespondentsAverage = counts.reduce((a, b) => a + b, 0) / counts.length;
+  const radiusAverageCurrent  = radiusScale(numberRespondentsAverage);
+  let sectionHeight = Math.max(Math.max(nodesData.length * 2 * radiusAverageCurrent / (0.96 * widthGraph), 1) * 2 * radiusAverageCurrent, 2.5 * radiusMaxCurrent);
+  if (nodesData.length < (0.96 * widthGraph / radiusAverageCurrent)) {
+    sectionHeight = 2 * radiusMaxCurrent;
+  }
   // additional multiplication by 2 to give the nodes the ability to cluster vertically
   if (nodesData.length > 2) {
     sectionHeight *= 2;
@@ -245,7 +247,7 @@ function drawInnerCirclesPerNode(circlesInnerData, nodeGroup) {
         .attr("transform", d => `translate(${d.x}, ${d.y})`)
         .attr("d", d => arcGenerator(d))
         .style("fill", d => (
-        d.gender in colorMap ? colorMap[d.gender] : colorDatapoint)
+        d.key in colorMap ? colorMap[d.key] : colorDatapoint)
         )
         .style("fill-opacity", d => opacityScale(d.probability))
         .on("mouseover", mouseoverItemNode)
@@ -265,7 +267,7 @@ function drawInnerCircles(nodesData) {
           missingness: 0,
           probability: 1,
           id: node.node.ids[i],
-          gender: node.node.Gender
+          key: node.node[keyAttribute]
         }));
     }
     else {
@@ -280,7 +282,7 @@ function drawInnerCircles(nodesData) {
                     missing_attributes: group.missing_attributes,
                     probability: group.probability.toFixed(2),
                     missingness: group.missingness.toFixed(2),
-                    gender: node.node.Gender
+                    key: node.node[keyAttribute]
                 };
                 circlesInnerData.push(circle);
             }
@@ -310,57 +312,6 @@ function computeRelativeMaxDepth(nodeId) {
   return depthMax;
 }
 
-/*
-function calculateOrderInSection(nodeParent, nodesChildren) {
-    let nodeDifferences = {};
-    for (const nodeChild of nodesChildren) {
-        let differences = nodeChild < nodeParent ? edges[nodeChild][nodeParent] : edges[nodeParent][nodeChild];
-        let differencesNumerical = differences.map((x) => mapQuestions[x]);
-        nodeDifferences[nodeChild] = differencesNumerical;
-    }
-
-    nodesChildren.sort((a, b) => {
-      const differencesA = nodeDifferences[a];
-      const differencesB = nodeDifferences[b];
-      for (let i = 0; i < differencesA.length; i++) {
-        if (differencesA[i] !== differencesB[i]) {
-          return differencesA[i] - differencesB[i];
-        }
-      }
-      return 0;
-    });
-
-    let orders = [];
-    let order = 0;
-    let differencesPrevious = [];
-    for (const node of nodesChildren) {
-        let differencesCurrent = nodeDifferences[node];
-        orders.push(order);
-        if (differencesPrevious !== differencesCurrent) {
-            differencesPrevious = differencesCurrent;
-            order++;
-        }
-    }
-
-    let nodeOrdering = {};
-    let size = orders.length;
-    for (let i = 0; i < nodesChildren.length; i++) {
-        let nodeChild = nodesChildren[i];
-        nodeOrdering[nodeChild] = {"left": orders[size-1] - orders[i], "right": orders[i]};
-    }
-    return nodeOrdering;
-}
-*/
-
-/*
-function getFirstNonEmptySection(depth) {
-    for (let i = 1; i < depth; i++) {
-        if (degrees[i].length > 0) {
-            return i;
-        }
-    }
-}*/
-
 function defineQuestionForce(nodeA, nodeB, question, strength) {
     let nodeMin = nodeA.id < nodeB.id ? nodeA.id : nodeB.id;
     let nodeMax = nodeA.id > nodeB.id ? nodeA.id : nodeB.id;
@@ -369,7 +320,7 @@ function defineQuestionForce(nodeA, nodeB, question, strength) {
 
     if (edges[nodeMin][nodeMax].includes(question)) {
         k = 10 / Math.sqrt(n);
-        return -k * k * strength;
+        return -k * strength;
     }
     k = 1e5 / Math.sqrt(n);
     return strength / k;
@@ -419,14 +370,12 @@ function applyQuestionBasedForceGraph(question, strength) {
         simulationGraph.force(`questionForce-${question}`, null);
         delete questionForces[`questionForce-${question}`];
         if (Object.keys(questionForces).length === 0) {
-            //simulationGraph.force("center",d3.forceX((d) => widthGraph * 0.5).strength(0.1));
             simulationGraph.force("hamming", hammingForce(0.1))
         }
     }
     else {
         let questionForceCurrent = questionForce(question, strength);
         questionForces[`questionForce-${question}`] = questionForceCurrent;
-        //simulationGraph.force('center', null);
         simulationGraph.force('hamming', null);
         simulationGraph.force(`questionForce-${question}`, questionForceCurrent);
     }
@@ -450,9 +399,6 @@ function hammingForce(strength = 0.1) {
             const normalizedHD = hd / attributesChecked.size;
 
             let height = sectionsY[nodeA.degree + 1] - sectionsY[nodeA.degree];
-
-            //let baseLength = Math.sqrt(height * sectionBB.width) / degrees[nodeA.degree].length;
-            //const restLength = (baseLength * normalizedHD + nodeA.r + nodeB.r);
             const restLength = baseLength * normalizedHD;
 
             const dx = nodeB.x - nodeA.x;
@@ -497,38 +443,7 @@ function initializeSimulation(nodesData, questionForces) {
     }
 
     simulationGraph.force("collide", d3.forceCollide((d) => d.r + 1))
-    //.force("charge", d3.forceManyBody().strength((d) => -d.r))
-    //.force("center", d3.forceX((d) => widthGraph * 0.5).strength(0.01))
-    //.force("coordinateY", d3.forceY((d) => (sectionsY[d.degree] + (sectionsY[d.degree + 1] - sectionsY[d.degree]) / 2)).strength(0.01))
     .force("hamming", hammingForce(0.1))
-    /*.force(
-      "firstSectionForceLeft",
-      d3.forceX((d) => d.degree === degreeNonEmpty ? sectionBB.x : null)
-        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].left * 0.01 : 0)
-    )
-    .force(
-      "firstSectionForceRight",
-      d3.forceX((d) => d.degree === degreeNonEmpty ? widthGraph : null)
-        .strength((d) => d.degree === degreeNonEmpty ? nodeOrdering[d.id].right * 0.01 : 0)
-    )*/
-    /*.force(
-      "linkVertical",
-      d3.forceLink(links.vertical)
-        .distance(radiusMax + 5)
-        .strength(0.1),
-    )*/
-    /*.force(
-      "linkHorizontal",
-      d3.forceLink(links.horizontal)
-        .distance(radiusMax + 5)
-        .strength(0.1),
-    )*/
-    /*.force(
-      "linkSameGroup",
-      d3.forceLink(linksSameGroup)
-        .distance(radiusMax + 0.5)
-        .strength(1),
-    )*/
     .on("tick", () => {
       nodesData.forEach((node) => {
         let topY = sectionsY[node.degree] + sectionBB.y;
@@ -543,19 +458,11 @@ function initializeSimulation(nodesData, questionForces) {
           .data(nodesData)
           .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
     })
-    /*.on("end", () => {
-      //drawLinks(linksVertical, colorLinksHD1);
-      //drawLinks(linksSameGroup, colorLinksSameGroup);
-    });*/
 }
 
 
 function drawCircles(nodesData, depth, nodeFocusId) {
     nodesData.sort((a, b) => a.id - b.id);
-    //let degreeNonEmpty = getFirstNonEmptySection(depth);
-    //let nodesChildren = degrees[degreeNonEmpty];
-    //let nodeOrdering = calculateOrderInSection(nodeFocusId, nodesChildren);
-
     initializeSimulation(nodesData, questionForces);
 
     simulationGraph.on("end", () => {
@@ -642,29 +549,9 @@ function constructDegrees(nodeId, depth) {
 // Draw graph
 function drawGraph(nodeId, depth) {
 
-  /*let nodeFocus = {
-    x: 0.5 * widthGraph,
-    y: 0.5 * heightDegree,
-    r: radiusScale(nodes[nodeId]["count"]),
-    fill: colorNode,
-    node: nodes[nodeId],
-    id: nodeId,
-    degree: 0,
-  };*/
-
   let nodesData = [];
 
-  //let leftX = sectionBB.x;
-  //let rightX = sectionBB.x + sectionBB.width;
-
   for (let i = 0; i <= depth; i++) {
-    //let topY = heightCurrent + sectionBB.y;
-    //let bottomY = heightCurrent + sectionBB.y + sectionBB.height;
-
-    /*let seed = 12345;
-    let pseudoRandomGenerator = d3.randomLcg(seed);
-    let randomX = d3.randomUniform.source(pseudoRandomGenerator)(leftX, rightX);
-    let randomY = d3.randomUniform.source(pseudoRandomGenerator)(topY, bottomY);*/
 
     let nodesCurrent = degrees[i];
     adjustSectionHeight(nodesCurrent);
@@ -676,8 +563,6 @@ function drawGraph(nodeId, depth) {
       let nodeCurrentId = nodesCurrent[j];
       let rCurrent = radiusScale(nodes[nodeCurrentId]["count"]);
       let circle = {
-        //x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX(),
-        //y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY(),
         x: nodeCurrentId == nodeId ? 0.5 * widthGraph : randomX,
         y: nodeCurrentId == nodeId ? 0.5 * heightDegree : randomY,
         r: rCurrent,

@@ -15,6 +15,7 @@ let mousemoveGroupNode = function (event, d) {
   event.stopPropagation();
   let attributes = ["count", ...attributesOrder].filter((key) => key in d.node);
   let nodeAttributes = attributes.map(
+    //(key) => (key in questions ? questions[key].text : key) + ": " + d.node[key],
     (key) => key + ": " + d.node[key],
   );
   let tooltipText = nodeAttributes.join("<br>");
@@ -75,5 +76,4 @@ let mouseleaveItemNode = function (event, d) {
     if (currentStroke !== pinkDark) {
         itemNodes.style("stroke", null).style("opacity", 0.95);
     }
-    //d3.select(this).style("stroke", none).style("opacity", 0.95);
 };

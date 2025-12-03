@@ -1,7 +1,7 @@
 function computeEntropy(nodeIds) {
   let attributeValueCounts = {};
 
-  for (const attr of attributesOrder) {
+  for (const attr of attributesChecked) {
     attributeValueCounts[attr] = {};
     for (const nodeId of nodeIds) {
       const val = questions[attr]['options_categories'][nodes[nodeId][attr]];
@@ -24,7 +24,7 @@ function computeEntropy(nodeIds) {
     }
     totalEntropy += entropyAttr;
   }
-  return totalEntropy / attributesOrder.length;
+  return totalEntropy / attributesChecked.size;
 }
 
 function drawEntropyMap(entropyMap, entropyMapWidth, entropyMapHeight, nodes, depth, degrees) {

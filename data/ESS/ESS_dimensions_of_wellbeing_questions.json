@@ -1,0 +1,730 @@
+{
+  "cntry": {
+    "options_categories": {
+      "CH": 0,
+      "HU": 1
+    },
+    "options": [
+      "CH",
+      "HU"
+    ],
+    "text": "Respondent's country"
+  },
+  "stflife": {
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "text": "How satisfied with life as a whole"
+  },
+  "happy": {
+    "text": "How happy are you",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "fltsd": {
+    "text": "Felt sad, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "fltdpr": {
+    "text": "Felt depressed, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "enjlf": {
+    "text": "Enjoyed life, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "wrhpp": {
+    "text": "Were happy, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "flteeff": {
+    "text": "Felt everything you did as effort, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "slprl": {
+    "text": "Sleep was restless, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "cldgng": {
+    "text": "Could not get going, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "ppltrst": {
+    "text": "Most people can be trusted (or you can't be too careful)",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "pplfair": {
+    "text": "Most people try to be fair (or try to take advantage of you)",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "pplhlp": {
+    "text": "Most of the time people helpful (or mostly looking out for themselves)",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "inprdsc": {
+    "text": "How many people with whom you can discuss intimate and personal matters",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "fltlnl": {
+    "text": "Felt lonely, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "fltanx": {
+    "text": "Felt anxious, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "fltpcfl": {
+    "text": "Felt calm and peaceful, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "dclvlf": {
+    "text": "Agree/disagree: feel free to decide how to live my life: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "lchshcp": {
+    "text": "Agree/disagree: have little chance to show how capable I am: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "accdng": {
+    "text": "Agree/disagree: most days I feel a sense of accomplishment from what I do: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "flrms": {
+    "text": "Agree/disagree: at times feel as if I am a failure: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "enrglot": {
+    "text": "Had lot of energy, how often past week",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "wrbknrm": {
+    "text": "Agree/disagree: when things go wrong in my life it takes a long time to get back to normal: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "optftr": {
+    "text": "Agree/disagree: always optimistic about my future: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "pplahlp": {
+    "text": "To what extent do you feel people in local area help one another",
+       "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "lotsgot": {
+    "text": "Agree/disagree: there are lots of things I am good at: 1 - strongly agree, 5 - strongly disagree",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "tmimdng": {
+    "text": "Interested in what you are doing, how much of the time",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "tmabdng": {
+    "text": "Absorbed in what you are doing, how much of the time",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "tmendng": {
+    "text": "Enthusiastic about what you are doing, how much of the time",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "flclpla": {
+    "text": "Agree/disagree: feel close to the people in local area",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "flapppl": {
+    "text": "Feel appreciated by people you are close to",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "pstvms": {
+    "text": "Agree/disagree: : in general feel very positive about myself",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "dngval": {
+    "text": "Agree/disagree: feel what I do in life is valuable and worthwhile",
+    "options_categories": {
+      "1": 0,
+      "2": 1,
+      "3": 2,
+      "4": 3,
+      "5": 4
+    },
+    "options": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "deaimpp": {
+    "text": "How difficult or easy do you find it to deal with important problems that come up in your life?",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "sedirlf": {
+    "text": "Have a sense of direction in your life",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "rehlppl": {
+    "text": "Receive help and support from people you are close to",
+    "options_categories": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6
+    },
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  }
+}

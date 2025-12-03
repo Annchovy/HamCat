@@ -7,11 +7,14 @@ let heightAttributeOverviewHeader = 0.1 * heightBeeswarm;
 let heightAttributeOverviewLabels = 0.5 * heightBeeswarm;
 
 let widthQuestion = 0.54 * widthBeeswarm;
-//let heightQuestion = 0.15 * heightBeeswarm;
 let heightQuestion = 0.09 * heightBeeswarm;
 
+let keyAttribute = 'Gender';
+const colorMap = { "other": "green", "female": "#DD6C40", "male": "#509DA9" };
+//let keyAttribute = 'cntry';
+//const colorMap = { "CH": "#509DA9", "HU": "#DD6C40"}
+
 let radiusBeeswarm = 4;
-//let colorBeeswarm = "#f4a582";
 let colorBeeswarm = "#d5529b";
 const arcGenerator = d3.arc()
                     .innerRadius(0)
@@ -257,6 +260,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             .attr("x", 1.25 * widthQuestion)
             .attr("y", 0.55 * heightQuestion)
             .attr("class", "annotation-level-2")
+            .attr("id", `${questionId}-missingness`)
             .style("font-weight", "normal")
             .text(`${missingness.toFixed(2)}`);
 
@@ -345,7 +349,7 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
                         .append("path")
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
-                        .attr("fill", d => (d.gender in colorMap ? colorMap[d.gender] : colorBeeswarm))
+                        .attr("fill", d => (d.key in colorMap ? colorMap[d.key] : colorBeeswarm))
                         //.attr("fill", colorBeeswarm)
                         .attr("counter-opacity", 0)
                         .style("pointer-events", "none")
@@ -369,7 +373,6 @@ function createQuestionBeeswarm(categories, dataBeeswarm, number, questionId) {
             simulationBeeswarm.force("x", d3.forceX(d => tickPositions.get(d.category)).strength(0.3));
             simulationBeeswarm.alpha(0.5).restart();
             tickLabels.attr("x", d => tickPositions.get(d));
-            // Optimize!
             let i = categories.indexOf(d);
             let checkbox = d3.select(`#tick-${questionId}-${i}`);
             checkbox.attr("x", newX - 0.022 * widthQuestion);
@@ -449,11 +452,16 @@ function updateAttributeView(){
     for (const questionId of attributesOrderBeeswarm){
         let answersObjects = answers[questionId].map((d, index) => ({ category: d,
                                                        value: 1 - individualMissingCounts[index] / totalAttributes,
-                                                       id: answers['id'][index] }));
+                                                       id: answers['id'][index],
+                                                       key: answers[keyAttribute][index]}));
         answersObjects = answersObjects.filter(d => d.category !== "");
 
         let simulationBeeswarm = simulations[questionId];
+        const emptyValues = answers[questionId].filter(item => item === null || item === undefined || item === "");
+        const missingness = emptyValues.length / answers[questionId].length * 100;
         let question = d3.select(`#question-section-${questionId}`);
+        d3.select(`#${questionId}-missingness`).text(`${missingness.toFixed(2)}`);
+
         question.selectAll(".circ").remove();
         question.selectAll(".circ")
                         .data(answersObjects)
@@ -461,7 +469,7 @@ function updateAttributeView(){
                         .append("path")
                         .attr("class", "circ")
                         .attr("id", d => `${questionId}-${d.id}`)
-                        .attr("fill", d => (d.gender in colorMap ? colorMap[d.gender] : colorBeeswarm))
+                        .attr("fill", d => (d.key in colorMap ? colorMap[d.key] : colorBeeswarm))
                         .attr("counter-opacity", 0)
                         .attr("d", d => {
                             const completeness = d.value ?? 1;
@@ -470,10 +478,6 @@ function updateAttributeView(){
                         })
                         .style("pointer-events", "none");
         simulationBeeswarm.nodes(answersObjects);
-                // If you have links, update them too:
-                // simulation.force("link").links(newLinkArray);
-
-                // 2. Restart the simulation with new energy
         simulationBeeswarm.alpha(1).restart();
     }
     d3.selectAll(".checkbox-question").property("checked", true);
@@ -498,7 +502,7 @@ function createAttributeView(){
         let answersObjects = answers[key].map((d, index) => ({ category: d,
                                                                value: 1 - individualMissingCounts[index] / totalAttributes,
                                                                id: answers['id'][index],
-                                                               gender: answers['Gender'][index] }));
+                                                               key: answers[keyAttribute][index] }));
         let options = value.options.map(d => d.toString());
         createQuestionBeeswarm(options, answersObjects, number, key);
         number++;
